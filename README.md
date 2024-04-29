@@ -7,7 +7,9 @@ These are scripts for interfacing with the TMSS API.
 - `tmss_list_strategies.py` lists all observing strategies
 
 The scripts use a `login.yaml` file which should contain
-`username: username`
-`passord: password`
-`host: path.to.tmss`
-`port: port_number`
+```
+username: username
+password: password
+host: path.to.tmss
+port: port_number
+```

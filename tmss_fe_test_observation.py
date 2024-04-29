@@ -29,37 +29,55 @@ if __name__ == "__main__":
                         default=60, type=int)
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
-    parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
-                        action="store_true")
-    parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
-                        action="store_true")
     parser.add_argument("-L", "--stationlist", help="Station to use [str, default: CS001, can be multiple, e.g. \"CS001,CS002,CS003\"]",
                         default="CS001", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 305]",
                         default=305, type=int)
+    parser.add_argument("-p", "--pointing", help="Override pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
+                        default=None, type=str)
     parser.add_argument("-m", "--mode", help="Observing mode (I or XXYY) [str, default: I]",
                         default="I", type=str)
+    parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
+                        action="store_true")
+    parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
+                        action="store_true")
     args = parser.parse_args()
 
     # Settings
     run_spec = {"strategy_name": "FE Stokes I - raw",
-                "description": "L2TS test observation",
-                "scheduling_set_id": args.scheduling_set_id}
-    p = get_icrs_coordinates(args.source)
+                "description": "L2TS test observation"}
     src_spec = {"name": args.source,
-                "angle1": p.ra.rad,
-                "angle2": p.dec.rad,
-                "duration_s": args.length,
                 "elev_min_deg": 0,
                 "lst_min_s": -43200,
                 "lst_max_s": 43200,
                 "priority_queue": "A",
                 "rank": 1.00}
 
+    # Get pointing
+    if args.pointing is None:
+        p = get_icrs_coordinates(args.source)
+        pointing = {"target": args.source,
+                    "angle1": p.ra.rad,
+                    "angle2": p.dec.rad,
+                    "direction_type": "J2000"}
+    else:
+        parts = args.pointing.split(",")
+        pointing = {"target": parts[0],
+                    "angle1": float(parts[1]),
+                    "angle2": float(parts[2]),
+                    "direction_type": parts[3]}
+        src_spec["name"] = parts[0]
+        
     # Decode subbands
-    smin = int(args.subband.split("..")[0])
-    smax = int(args.subband.split("..")[-1])
-
+    if "," in args.subband:
+        subband_list = [int(part) for part in args.subband.split(",")]
+    elif ".." in args.subband:
+        smin = int(args.subband.split("..")[0])
+        smax = int(args.subband.split("..")[-1])
+        subband_list = list(range(smin, smax + 1))
+    else:
+        subband_list = [int(args.subband)]
+        
     # Start time
     if args.tstart is None:
         # Round to start of minute
@@ -127,26 +145,20 @@ if __name__ == "__main__":
 
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
-
-        pointing = {"target": src_spec["name"],
-                    "angle1": src_spec["angle1"],
-                    "angle2": src_spec["angle2"],
-                    "direction_type": "J2000"}
-
         
         spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
         spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 
-        spec_doc['tasks']['Observation']['specifications_doc']['duration'] = src_spec['duration_s']
+        spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = list(range(smin, smax + 1))
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
@@ -161,7 +173,7 @@ if __name__ == "__main__":
             sys.exit()
 
         # Create scheduling unit
-        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], run_spec['scheduling_set_id'], spec_doc, src_spec["name"], run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
+        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, src_spec["name"], run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
 
         # Patch scheduling unit with keys that are not included in the strategy
         print(f"Created SU draft {scheduling_unit_draft['id']} for {src_spec['name']} at {scheduling_unit_draft['url']}")

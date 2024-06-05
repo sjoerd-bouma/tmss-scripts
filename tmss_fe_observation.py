@@ -3,7 +3,7 @@ import os
 import sys
 import yaml
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     # Start time
     if args.tstart is None:
         # Round to start of minute
-        tstart = datetime.utcnow() + timedelta(seconds=args.delay)
+        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
     else:
         tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")

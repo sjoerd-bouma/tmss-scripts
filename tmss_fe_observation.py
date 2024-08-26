@@ -21,7 +21,7 @@ if __name__ == "__main__":
                         default="HBA_DUAL", type=str)
     parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
                         default="HBA_110_190", type=str)
-    parser.add_argument("-S", "--subband", help="Subbands to select [str, default: 201..400]",
+    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '144*16', '128,256,384') [str, default: 201..400]",
                         default="201..400", type=str)
     parser.add_argument("-t", "--tstart", help="Start time (isot) [str, default: now]",
                         default=None, type=str)
@@ -37,6 +37,14 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-m", "--mode", help="Observing mode (I or XXYY) [str, default: I]",
                         default="I", type=str)
+    parser.add_argument("-D", "--downsamp", help="Downsampling factor for Stokes I observing [int, default: 16]",
+                        default=16, type=int)
+    parser.add_argument("-c", "--channels", help="Channels per subband for Stokes I observing [int, default: 16]",
+                        default=16, type=int)
+    parser.add_argument("-n", "--saps", help="Number of identical sub-array pointings (SAPs) [int, default: 1]",
+                        default=1, type=int)
+    parser.add_argument("-N", "--subbands_per_file", help="Number of subbands per file [int, default: 488 for mode I, 20 for mode XX]",
+                        default=None, type=int)
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
@@ -75,6 +83,10 @@ if __name__ == "__main__":
         smin = int(args.subband.split("..")[0])
         smax = int(args.subband.split("..")[-1])
         subband_list = list(range(smin, smax + 1))
+    elif "*" in args.subband:
+        subband = int(args.subband.split("*")[0])
+        nsubband = int(args.subband.split("*")[1])
+        subband_list = [subband] * nsubband
     else:
         subband_list = [int(args.subband)]
         
@@ -94,10 +106,19 @@ if __name__ == "__main__":
 
     # Check antenna field against LOFAR2.0 stations
     if args.antennafield == "LBA_ALL":
-        if not set(stationlist) <= set(["CS001"]):
+        if not set(stationlist) <= set(["CS001", "CS032"]):
             print("Can not use LBA_ALL on LOFAR stations")
             sys.exit()
 
+    # Subbands per file
+    if args.subbands_per_file is not None:
+        subbands_per_file = args.subbands_per_file
+    else:
+        if args.mode == "XXYY":
+            subbands_per_file = 20
+        elif args.mode == "I":
+            subbands_per_file = 488
+            
     # Observing modes
     if args.mode == "XXYY":
         mode = {"stokes": "XXYY",
@@ -107,7 +128,7 @@ if __name__ == "__main__":
                     "scale_max": 5,
                     "scale_min": -5,
                 },
-                "subbands_per_file": 20,
+                "subbands_per_file": subbands_per_file,
                 "channels_per_subband": 1,
                 "time_integration_factor": 1
                 }
@@ -119,9 +140,9 @@ if __name__ == "__main__":
                      "scale_max": 5,
                      "scale_min": -5,
                  },
-                 "subbands_per_file": 488,
-                 "channels_per_subband": 16,
-                 "time_integration_factor": 16
+                 "subbands_per_file": subbands_per_file,
+                 "channels_per_subband": args.channels,
+                 "time_integration_factor": args.downsamp
                  }
         
             
@@ -153,12 +174,18 @@ if __name__ == "__main__":
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = pointing
+        saps = []
+        for isap in range(args.saps):
+            sap = {
+                "subbands": subband_list,
+                "digital_pointing": pointing
+            }
+            saps.append(sap)
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = saps
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode

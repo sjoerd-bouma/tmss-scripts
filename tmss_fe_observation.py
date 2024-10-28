@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, UTC
 import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
-from tmss_http_rest_client import TMSSsession
+from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 
 from print_dict import print_dict
 

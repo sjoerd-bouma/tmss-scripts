@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
-import sys
-import json
 import yaml
-from tmss_http_rest_client import TMSSsession
+
+from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 
 if __name__ == "__main__":
     # Read credentials
     with open("login.yaml", "r") as fp:
         settings = yaml.load(fp, Loader=yaml.FullLoader)
 
-    # TMSS settings
-    strategy_name = "BF Stokes I, satellite monitoring"
-    host = "tmss.lofar.eu"
-    port = 443
-    
-    with TMSSsession(host=host,
-                     port=port,
+    with TMSSsession(host=settings["host"],
+                     port=settings["port"],
                      username=settings["username"],
                      password=settings["password"]) as client:
 

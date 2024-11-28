@@ -35,7 +35,7 @@ if __name__ == "__main__":
                         default=305, type=int)
     parser.add_argument("-p", "--pointing", help="Override pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
                         default=None, type=str)
-    parser.add_argument("-m", "--mode", help="Observing mode (I or XXYY) [str, default: I]",
+    parser.add_argument("-m", "--mode", help="Observing mode (I, IQUV or XXYY) [str, default: I]",
                         default="I", type=str)
     parser.add_argument("-D", "--downsamp", help="Downsampling factor for Stokes I observing [int, default: 16]",
                         default=16, type=int)
@@ -106,9 +106,14 @@ if __name__ == "__main__":
 
     # Check antenna field against LOFAR2.0 stations
     if args.antennafield == "LBA_ALL":
-        if not set(stationlist) <= set(["CS001", "CS032"]):
-            print("Can not use LBA_ALL on LOFAR stations")
+        if not set(stationlist) <= set(["CS001", "CS032", "RS307"]):
+            print("Can not use LBA_ALL on LOFAR stations. Exiting.")
             sys.exit()
+
+    # Check if filter is compatible with antenna set
+    if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
+        print("Wrong combination of antennafield and filter selection. Exiting.")
+        sys.exit()
 
     # Subbands per file
     if args.subbands_per_file is not None:
@@ -117,6 +122,8 @@ if __name__ == "__main__":
         if args.mode == "XXYY":
             subbands_per_file = 20
         elif args.mode == "I":
+            subbands_per_file = 488
+        elif args.mode == "IQUV":
             subbands_per_file = 488
             
     # Observing modes
@@ -132,8 +139,20 @@ if __name__ == "__main__":
                 "channels_per_subband": 1,
                 "time_integration_factor": 1
                 }
-    else:
+    elif args.mode == "I":
         mode =  {"stokes": "I",
+                 "quantisation": {
+                     "bits": 8,
+                     "enabled": False,
+                     "scale_max": 5,
+                     "scale_min": -5,
+                 },
+                 "subbands_per_file": subbands_per_file,
+                 "channels_per_subband": args.channels,
+                 "time_integration_factor": args.downsamp
+                 }
+    elif args.mode == "IQUV":
+        mode =  {"stokes": "IQUV",
                  "quantisation": {
                      "bits": 8,
                      "enabled": False,

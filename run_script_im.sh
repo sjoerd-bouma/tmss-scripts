@@ -42,12 +42,11 @@ FILTER=$(yq e '.filter' "$CONFIG_FILE")
 SUBBAND=$(yq e '.subband' "$CONFIG_FILE")
 LENGTH=$(yq e '.length' "$CONFIG_FILE")
 DELAY=$(yq e '.delay' "$CONFIG_FILE")
-STATIONLIST=$(yq e '.stationlist' "$CONFIG_FILE")
+STATIONS=$(yq e '.stations' "$CONFIG_FILE")
 SCHEDULING_SET_ID=$(yq e '.scheduling_set_id' "$CONFIG_FILE")
 
 CHANNELS=$(yq e '.channels' "$CONFIG_FILE")
 INTEGRATION=$(yq e '.integration' "$CONFIG_FILE")
-SAPS=$(yq e '.saps' "$CONFIG_FILE")
 TSTART_LIST=$(yq e '.tstart[]' "$CONFIG_FILE")
 
 # Optional parameters
@@ -66,11 +65,10 @@ while IFS= read -r TSTART; do
             -t \"$TSTART\" \
             -l \"$LENGTH\" \
             -d \"$DELAY\" \
-            -L \"$STATIONLIST\" \
+            -L \"$STATIONS\" \
             -i \"$SCHEDULING_SET_ID\" \
             -c \"$CHANNELS\" \
-            -I \"$INTEGRATION\" \
-            -n \"$SAPS\""
+            -I \"$INTEGRATION\""
 
             # Include optional parameters if they are provided
             if [[ -n "$POINTING" ]]; then

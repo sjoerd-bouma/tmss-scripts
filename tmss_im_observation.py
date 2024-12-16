@@ -15,13 +15,13 @@ from print_dict import print_dict
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Schedule pulsar timing observations in TMSS")
-    parser.add_argument("-s", "--source", help="Source to observe [str, default: Polaris]",
-                        default="Polaris", type=str)
+    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A]",
+                        default="Cas A", type=str)
     parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
                         default="HBA_DUAL", type=str)
     parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
                         default="HBA_110_190", type=str)
-    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '144*16', '128,256,384') [str, default: 256]",
+    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '128,256,384') [str, default: 256]",
                         default="256", type=str)
     parser.add_argument("-t", "--tstart", help="Start time (isot) [str, default: now]",
                         default=None, type=str)
@@ -29,8 +29,8 @@ if __name__ == "__main__":
                         default=60, type=int)
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
-    parser.add_argument("-L", "--stationlist", help="Station to use [str, default: CS001, can be multiple, e.g. \"CS001,CS002,CS003\"]",
-                        default="CS001", type=str)
+    parser.add_argument("-L", "--stations", help="Stations to use [str, default: CS001,CS032,RS307]",
+                        default="CS001,CS032,RS307", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 345]",
                         default=345, type=int)
     parser.add_argument("-p", "--pointing", help="Override pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
@@ -38,8 +38,6 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--channels", help="Channels per subband [int, default: 64]",
                         default=64, type=int)
     parser.add_argument("-I", "--integration", help="Integration time [int, default: 1]",
-                        default=1, type=int)
-    parser.add_argument("-n", "--saps", help="Number of identical sub-array pointings (SAPs) [int, default: 1]",
                         default=1, type=int)
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
@@ -97,14 +95,18 @@ if __name__ == "__main__":
         tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
     
-    # Station groups
-    stationlist = [item for item in args.stationlist.split(",")]
-    station_groups = [{"stations": [item],
-                       "max_nr_missing": 0} for item in stationlist]
+    # Stations
+    stations = args.stations.split(",")
+    station_groups = [
+        {
+            "stations": stations, 
+            "max_nr_missing": 0  
+        }
+    ]
     
     # Check antenna field against LOFAR2.0 stations
     if args.antennafield == "LBA_ALL":
-        if not set(stationlist) <= set(["CS001", "CS032", "RS307"]):
+        if not set(stations) <= set(["CS001", "CS032", "RS307"]):
             print("Can not use LBA_ALL on LOFAR stations. Exiting.")
             sys.exit()
 
@@ -141,14 +143,6 @@ if __name__ == "__main__":
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
-        saps = []
-        for isap in range(args.saps):
-            sap = {
-                "subbands": subband_list,
-                "digital_pointing": pointing
-            }
-            saps.append(sap)
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = saps
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter

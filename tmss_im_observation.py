@@ -78,10 +78,6 @@ if __name__ == "__main__":
         smin = int(args.subband.split("..")[0])
         smax = int(args.subband.split("..")[-1])
         subband_list = list(range(smin, smax + 1))
-    elif "*" in args.subband:
-        subband = int(args.subband.split("*")[0])
-        nsubband = int(args.subband.split("*")[1])
-        subband_list = [subband] * nsubband
     else:
         subband_list = [int(args.subband)]
         

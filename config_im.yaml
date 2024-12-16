@@ -1,0 +1,21 @@
+# List of start times (tstart) to iterate over
+tstart:
+  - "2024-12-05T11:45:00"
+#  - "2024-12-05T11:50:00"
+#  - "2024-12-05T11:55:00"
+
+# General configuration for the script
+source: "Polaris"
+antennafield: "HBA_DUAL"
+filter: "HBA_110_190"
+subband: "201..221"
+length: 60
+delay: 0
+stations: "CS001,CS032,RS307"
+scheduling_set_id: 345
+integration: 1
+channels: 64
+
+# Optional
+#pointing: "Zenith,0.0,1.5707963,AZELGEO"
+

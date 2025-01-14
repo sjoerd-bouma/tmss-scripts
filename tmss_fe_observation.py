@@ -45,6 +45,8 @@ if __name__ == "__main__":
                         default=1, type=int)
     parser.add_argument("-N", "--subbands_per_file", help="Number of subbands per file [int, default: 488 for mode I, 20 for mode XX]",
                         default=None, type=int)
+    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use source name]",
+                        default=None, type=str)
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
@@ -208,6 +210,12 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
+
+#        del spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST']
+#        spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
+#                                                                               "integration_interval": 1.0,
+#                                                                               "subbands": [300],
+#                                                                               "subbands_step": 0}
 
         # Show spec doc
         print_dict(spec_doc, prefix="spec_doc")

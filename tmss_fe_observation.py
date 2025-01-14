@@ -47,6 +47,8 @@ if __name__ == "__main__":
                         default=None, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use source name]",
                         default=None, type=str)
+    parser.add_argument("-v", "--verbose", help="Provide detailed output",
+                        action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
@@ -218,7 +220,8 @@ if __name__ == "__main__":
 #                                                                               "subbands_step": 0}
 
         # Show spec doc
-        print_dict(spec_doc, prefix="spec_doc")
+        if args.verbose:
+            print_dict(spec_doc, prefix="spec_doc")
 
         # Skip if not uploaded
         if not args.upload:

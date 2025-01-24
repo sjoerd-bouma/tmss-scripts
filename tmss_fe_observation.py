@@ -47,6 +47,8 @@ if __name__ == "__main__":
                         default=None, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use source name]",
                         default=None, type=str)
+    parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
+                        default=None, type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -79,6 +81,19 @@ if __name__ == "__main__":
                     "angle2": float(parts[2]),
                     "direction_type": parts[3]}
         src_spec["name"] = parts[0]
+
+    # Get XST settings
+    if args.xst is not None:
+        parts = args.xst.split(",")
+        xst_spec = {"enabled": True,
+                    "subbands": [int(parts[0])],
+                    "subbands_step": int(parts[1]),
+                    "integration_interval": float(parts[2])}
+    else:
+        xst_spec = {"enabled": False,
+                    "subbands": [300],
+                    "subbands_step": 0,
+                    "integration_interval": 1.0}
         
     # Decode subbands
     if "," in args.subband:
@@ -213,11 +228,8 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
 
-#        del spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST']
-#        spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
-#                                                                               "integration_interval": 1.0,
-#                                                                               "subbands": [300],
-#                                                                               "subbands_step": 0}
+        if xst_spec["enabled"]:
+            spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 
         # Show spec doc
         if args.verbose:

@@ -234,7 +234,7 @@ if __name__ == "__main__":
         # Show spec doc
         if args.verbose:
             print_dict(spec_doc, prefix="spec_doc")
-
+            
         # Skip if not uploaded
         if not args.upload:
             print("No scheduling units uploaded to TMSS.")

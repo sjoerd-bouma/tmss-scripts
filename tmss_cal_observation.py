@@ -24,7 +24,7 @@ if __name__ == "__main__":
                         default="HBA_110_190", type=str)
     parser.add_argument("-t", "--tstart", help="Time between start (isot) [str, default: now]",
                         default=None, type=str)
-    parser.add_argument("-w", "--window", help="Time between windo length (d) [float, default: 1]",
+    parser.add_argument("-w", "--window", help="Time between window length (d) [float, default: 1]",
                         default=1.0, type=float)
     parser.add_argument("-L", "--stationlist", help="Station to use [str, default: CS001, can be multiple, e.g. \"CS001,CS002,CS003\"]",
                         default="CS001", type=str)
@@ -33,6 +33,8 @@ if __name__ == "__main__":
     parser.add_argument("-M", "--description", help="Observation description [str, example \"HBA station calibration\", default: \"HBA station calibration\"]",
                         default="HBA station calibration", type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
+                        action="store_true")
+    parser.add_argument("-F", "--fixed_time", help="Fix observation start time (no dynamic scheduling)",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
@@ -43,12 +45,20 @@ if __name__ == "__main__":
     # Settings
     run_spec = {"strategy_name": "FE Stokes I - raw",
                 "description": args.description}
-    src_spec = {"name": args.source,
-                "elev_min_deg": 30,
-                "lst_min_s": -7200,
-                "lst_max_s": 7200,
-                "priority_queue": "A",
-                "rank": 1.00}
+    if args.fixed_time:
+        src_spec = {"name": args.source,
+                    "elev_min_deg": 00,
+                    "lst_min_s": -43200,
+                    "lst_max_s": 43200,
+                    "priority_queue": "A",
+                    "rank": 1.00}
+    else:
+        src_spec = {"name": args.source,
+                    "elev_min_deg": 30,
+                    "lst_min_s": -7200,
+                    "lst_max_s": 7200,
+                    "priority_queue": "A",
+                    "rank": 1.00}
 
     # Get pointing
     p = get_icrs_coordinates(args.source)
@@ -116,9 +126,13 @@ if __name__ == "__main__":
 
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
-        
-        spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]
-        spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
+
+        if args.fixed_time:
+            spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
+        else:
+            spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 

@@ -10,7 +10,7 @@ These are scripts for interfacing with the TMSS API.
 - `script/run_script_fe.sh` runs the `tmss_fe_test_observation.py` using the `config_fe.yaml`
 - `script/run_script_im.sh` runs the `tmss_im_test_observation.py` using the `config_im.yaml`
 
-Install the LOFAR TMSS client from https://git.astron.nl/ro/lofar_tmss_client
+Install the LOFAR TMSS client from https://git.astron.nl/tmss/lofar_tmss_client
 
 The scripts use a `login.yaml` file which should contain
 

@@ -5,6 +5,7 @@ import yaml
 import json
 import argparse
 from datetime import datetime, timedelta, UTC
+from math import ceil
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
@@ -40,6 +41,14 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
                         action="store_true")
+    parser.add_argument("-S", "--subbands", help="Inital subband configuration",
+                        default=[0], nargs='+', type=int)
+    parser.add_argument("-p", "--subband_step", help="Subband step size per integration",
+                        default=1, type=int)
+    parser.add_argument("-T", "--integration_time", help="Integration time per subband captured",
+                        default=1.0, type=float)
+    parser.add_argument("-N", "--num_cycles", help="Number of full subband cycles",
+                        default=1.0, type=float)
     args = parser.parse_args()
 
     # Settings
@@ -93,6 +102,7 @@ if __name__ == "__main__":
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()
 
+    observation_time = int(ceil(args.integration_time * 512 * args.num_cycles / args.subband_step))
     # Specify observing mode
     mode =  {"stokes": "I",
              "quantisation": {
@@ -136,7 +146,7 @@ if __name__ == "__main__":
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 
-        spec_doc['tasks']['Observation']['specifications_doc']['duration'] = 512
+        spec_doc['tasks']['Observation']['specifications_doc']['duration'] = observation_time
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = [{"subbands": [200],
                                                                                                    "digital_pointing": pointing}]
@@ -149,9 +159,9 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
 
         spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
-                                                                               "integration_interval": 1.0,
-                                                                               "subbands": [0],
-                                                                               "subbands_step": 1}
+                                                                               "integration_interval": args.integration_time,
+                                                                               "subbands": args.subbands,
+                                                                               "subbands_step": args.subband_step}
 
         # Show spec doc
         if args.verbose:

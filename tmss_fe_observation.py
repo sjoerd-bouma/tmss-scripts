@@ -33,8 +33,8 @@ if __name__ == "__main__":
                         default="CS001", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 305]",
                         default=305, type=int)
-    parser.add_argument("-p", "--pointing", help="Override pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
-                        default=None, type=str)
+    parser.add_argument("-p", "--pointings", help="Override pointing (can be multiple) [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
+                        default=None, type=str, action="append")
     parser.add_argument("-m", "--mode", help="Observing mode (I, IQUV or XXYY) [str, default: I]",
                         default="I", type=str)
     parser.add_argument("-D", "--downsamp", help="Downsampling factor for Stokes I observing [int, default: 16]",
@@ -68,19 +68,27 @@ if __name__ == "__main__":
                 "rank": 1.00}
 
     # Get pointing
-    if args.pointing is None:
+    if args.pointings is None:
         p = get_icrs_coordinates(args.source)
-        pointing = {"target": args.source,
-                    "angle1": p.ra.rad,
-                    "angle2": p.dec.rad,
-                    "direction_type": "J2000"}
+        pointings = [{"target": args.source,
+                      "angle1": p.ra.rad,
+                      "angle2": p.dec.rad,
+                      "direction_type": "J2000"}]
+        tile_pointing = pointings[0]
     else:
-        parts = args.pointing.split(",")
-        pointing = {"target": parts[0],
-                    "angle1": float(parts[1]),
-                    "angle2": float(parts[2]),
-                    "direction_type": parts[3]}
-        src_spec["name"] = parts[0]
+        pointings = []
+        first = True
+        for point in args.pointings:
+            parts = point.split(",")
+            pointing = {"target": parts[0],
+                        "angle1": float(parts[1]),
+                        "angle2": float(parts[2]),
+                        "direction_type": parts[3]}
+            if first:
+                src_spec["name"] = parts[0]
+                tile_pointing = pointing
+                first = False
+            pointings.append(pointing)
 
     # Get XST settings
     if args.xst is not None:
@@ -108,7 +116,7 @@ if __name__ == "__main__":
         subband_list = [subband] * nsubband
     else:
         subband_list = [int(args.subband)]
-        
+
     # Start time
     if args.tstart is None:
         # Round to start of minute
@@ -134,6 +142,11 @@ if __name__ == "__main__":
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()
 
+    # Check if total number of subbands fits
+    if len(subband_list) * len(pointings) * args.saps > 488:
+        print("Too many subbands per pointing specified. Exiting.")
+        sys.exit()
+        
     # Subbands per file
     if args.subbands_per_file is not None:
         subbands_per_file = args.subbands_per_file
@@ -213,14 +226,18 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         saps = []
-        for isap in range(args.saps):
-            sap = {
-                "subbands": subband_list,
-                "digital_pointing": pointing
-            }
-            saps.append(sap)
+        idx = 0
+        for pointing in pointings:
+            for isap in range(args.saps):
+                sap = {
+                    "name": f"SAP{idx:03d}",
+                    "subbands": subband_list,
+                    "digital_pointing": pointing
+                }
+                saps.append(sap)
+                idx += 1
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = saps
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = tile_pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 

@@ -222,6 +222,9 @@ if __name__ == "__main__":
         spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
+        for source_constraint in ['sun', 'moon', 'jupiter']:
+            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
+            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0            
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]

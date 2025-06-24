@@ -33,8 +33,8 @@ if __name__ == "__main__":
                         default="CS001", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 305]",
                         default=305, type=int)
-    parser.add_argument("-p", "--pointing", help="Override pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
-                        default=None, type=str)
+    parser.add_argument("-p", "--pointings", help="Override pointing (can be multiple) [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
+                        default=None, type=str, action="append")
     parser.add_argument("-m", "--mode", help="Observing mode (I, IQUV or XXYY) [str, default: I]",
                         default="I", type=str)
     parser.add_argument("-D", "--downsamp", help="Downsampling factor for Stokes I observing [int, default: 16]",
@@ -45,6 +45,12 @@ if __name__ == "__main__":
                         default=1, type=int)
     parser.add_argument("-N", "--subbands_per_file", help="Number of subbands per file [int, default: 488 for mode I, 20 for mode XX]",
                         default=None, type=int)
+    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use source name]",
+                        default=None, type=str)
+    parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
+                        default=None, type=str)
+    parser.add_argument("-v", "--verbose", help="Provide detailed output",
+                        action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
@@ -62,19 +68,40 @@ if __name__ == "__main__":
                 "rank": 1.00}
 
     # Get pointing
-    if args.pointing is None:
+    if args.pointings is None:
         p = get_icrs_coordinates(args.source)
-        pointing = {"target": args.source,
-                    "angle1": p.ra.rad,
-                    "angle2": p.dec.rad,
-                    "direction_type": "J2000"}
+        pointings = [{"target": args.source,
+                      "angle1": p.ra.rad,
+                      "angle2": p.dec.rad,
+                      "direction_type": "J2000"}]
+        tile_pointing = pointings[0]
     else:
-        parts = args.pointing.split(",")
-        pointing = {"target": parts[0],
-                    "angle1": float(parts[1]),
-                    "angle2": float(parts[2]),
-                    "direction_type": parts[3]}
-        src_spec["name"] = parts[0]
+        pointings = []
+        first = True
+        for point in args.pointings:
+            parts = point.split(",")
+            pointing = {"target": parts[0],
+                        "angle1": float(parts[1]),
+                        "angle2": float(parts[2]),
+                        "direction_type": parts[3]}
+            if first:
+                src_spec["name"] = parts[0]
+                tile_pointing = pointing
+                first = False
+            pointings.append(pointing)
+
+    # Get XST settings
+    if args.xst is not None:
+        parts = args.xst.split(",")
+        xst_spec = {"enabled": True,
+                    "subbands": [int(parts[0])],
+                    "subbands_step": int(parts[1]),
+                    "integration_interval": float(parts[2])}
+    else:
+        xst_spec = {"enabled": False,
+                    "subbands": [300],
+                    "subbands_step": 0,
+                    "integration_interval": 1.0}
         
     # Decode subbands
     if "," in args.subband:
@@ -89,7 +116,7 @@ if __name__ == "__main__":
         subband_list = [subband] * nsubband
     else:
         subband_list = [int(args.subband)]
-        
+
     # Start time
     if args.tstart is None:
         # Round to start of minute
@@ -115,6 +142,11 @@ if __name__ == "__main__":
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()
 
+    # Check if total number of subbands fits
+    if len(subband_list) * len(pointings) * args.saps > 488:
+        print("Too many subbands per pointing specified. Exiting.")
+        sys.exit()
+        
     # Subbands per file
     if args.subbands_per_file is not None:
         subbands_per_file = args.subbands_per_file
@@ -190,18 +222,25 @@ if __name__ == "__main__":
         spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
+        for source_constraint in ['sun', 'moon', 'jupiter']:
+            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
+            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0            
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         saps = []
-        for isap in range(args.saps):
-            sap = {
-                "subbands": subband_list,
-                "digital_pointing": pointing
-            }
-            saps.append(sap)
+        idx = 0
+        for pointing in pointings:
+            for isap in range(args.saps):
+                sap = {
+                    "name": f"SAP{idx:03d}",
+                    "subbands": subband_list,
+                    "digital_pointing": pointing
+                }
+                saps.append(sap)
+                idx += 1
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = saps
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = tile_pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
@@ -209,9 +248,13 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
 
-        # Show spec doc
-        print_dict(spec_doc, prefix="spec_doc")
+        if xst_spec["enabled"]:
+            spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 
+        # Show spec doc
+        if args.verbose:
+            print_dict(spec_doc, prefix="spec_doc")
+            
         # Skip if not uploaded
         if not args.upload:
             print("No scheduling units uploaded to TMSS.")

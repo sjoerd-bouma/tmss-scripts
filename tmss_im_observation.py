@@ -138,6 +138,7 @@ if __name__ == "__main__":
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] =  subband_list
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = pointing
@@ -146,6 +147,7 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
+
 
 
         # Show spec doc

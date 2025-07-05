@@ -21,8 +21,8 @@ if __name__ == "__main__":
                         default="HBA_DUAL", type=str)
     parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
                         default="HBA_110_190", type=str)
-    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '128,256,384') [str, default: 256]",
-                        default="256", type=str)
+    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '128,256,384') [str, default: 201..400]",
+                        default="201..400", type=str)
     parser.add_argument("-t", "--tstart", help="Start time (isot) [str, default: now]",
                         default=None, type=str)
     parser.add_argument("-l", "--length", help="Observation length (s) [int, default: 60]",
@@ -37,8 +37,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-c", "--channels", help="Channels per subband [int, default: 64]",
                         default=64, type=int)
-    parser.add_argument("-I", "--integration", help="Integration time [int, default: 1]",
-                        default=1, type=int)
+    parser.add_argument("-I", "--integration", help="Integration time [float, default: 1]",
+                        default=1, type=float)
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
@@ -138,13 +138,17 @@ if __name__ == "__main__":
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] =  subband_list
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
-
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
-    
+        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
+        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
+
+
 
         # Show spec doc
         print_dict(spec_doc, prefix="spec_doc")

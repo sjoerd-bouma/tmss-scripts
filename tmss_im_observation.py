@@ -81,7 +81,6 @@ if __name__ == "__main__":
     else:
         subband_list = [int(args.subband)]
         
-        
     # Start time
     if args.tstart is None:
         # Round to start of minute
@@ -132,7 +131,7 @@ if __name__ == "__main__":
         spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] =  subband_list
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = pointing

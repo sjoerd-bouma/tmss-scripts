@@ -100,12 +100,6 @@ if __name__ == "__main__":
         }
     ]
     
-    # Check antenna field against LOFAR2.0 stations
-    if args.antennafield == "LBA_ALL":
-        if not set(stations) <= set(["CS001", "CS032", "RS307"]):
-            print("Can not use LBA_ALL on LOFAR stations. Exiting.")
-            sys.exit()
-
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")

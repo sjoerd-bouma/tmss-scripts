@@ -46,7 +46,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
-    run_spec = {"strategy_name": "Simple Imaging Observation",
+    run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing",
                 "description": "L2TS test observation"}
     src_spec = {"name": args.source,
                 "elev_min_deg": 0,

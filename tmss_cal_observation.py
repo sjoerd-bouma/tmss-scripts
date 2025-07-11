@@ -17,7 +17,7 @@ from print_dict import print_dict
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Schedule station calibration observations in TMSS")
-    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A]",
+    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A] (uses Simbad name resolver)",
                         default="Cas A", type=str)
     parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
                         default="HBA_DUAL", type=str)

@@ -14,8 +14,8 @@ from print_dict import print_dict
 
 if __name__ == "__main__":
     # Read command line arguments
-    parser = argparse.ArgumentParser(description="Schedule pulsar timing observations in TMSS")
-    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A]",
+    parser = argparse.ArgumentParser(description="Schedule an imaging observation.")
+    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A] (uses Simbad name resolver)",
                         default="Cas A", type=str)
     parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
                         default="HBA_DUAL", type=str)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
                         default="CS001,CS032,RS307", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 345]",
                         default=345, type=int)
-    parser.add_argument("-p", "--pointing", help="Override pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
+    parser.add_argument("-p", "--pointing", help="Override source pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
                         default=None, type=str)
     parser.add_argument("-c", "--channels", help="Channels per subband [int, default: 64]",
                         default=64, type=int)

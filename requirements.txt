@@ -1,0 +1,7 @@
+-i https://git.astron.nl/api/v4/projects/686/packages/pypi/simple
+--extra-index-url https://git.astron.nl/api/v4/projects/744/packages/pypi/simple
+--extra-index-url https://git.astron.nl/api/v4/projects/745/packages/pypi/simple
+lofar_tmss_client>=2.0.1 # GPLv3
+tmss-pycommon>=1.0 # GPLv3
+tmss-pymessaging>=1.0 # GPLv3
+pyyaml

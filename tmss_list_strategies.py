@@ -2,11 +2,11 @@
 import yaml
 
 from lofar_tmss_client.tmss_http_rest_client import TMSSsession
+from login_settings import get_settings
 
 if __name__ == "__main__":
     # Read credentials
-    with open("login.yaml", "r") as fp:
-        settings = yaml.load(fp, Loader=yaml.FullLoader)
+    settings = get_settings()
 
     with TMSSsession(host=settings["host"],
                      port=settings["port"],

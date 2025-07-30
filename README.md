@@ -12,8 +12,6 @@ These are scripts for interfacing with the TMSS API.
 
 Install the LOFAR TMSS client from https://git.astron.nl/tmss/lofar_tmss_client
 
-The scripts use a `login.yaml` file which should contain
-
 Usage for testing:
 ./script/run_script_fe.sh -c config/config_fe.yaml
 ./script/run_script_im.sh -c config/config_im.yaml
@@ -22,9 +20,13 @@ Usage for uploading and/or blueprinting the SU:
 ./script/run_script_fe.sh -c config/config_fe.yaml --upload --blueprint
 ./script/run_script_im.sh -c config/config_im.yaml --upload --blueprint
 
+The scripts use a `login.yaml` file which should contain a username, host and port. The
+password field is optional, and can be removed or set to "null" to be prompted at runtime
+for the value, or hardcoded within the file.
+
 ```
 username: username
-password: password
-host: path.to.tmss
-port: port_number
+password: null
+host: tmss.lofar.eu
+port: 443
 ```

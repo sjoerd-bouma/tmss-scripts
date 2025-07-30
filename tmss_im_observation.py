@@ -11,6 +11,7 @@ from astropy.coordinates import SkyCoord, get_icrs_coordinates
 from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 
 from print_dict import print_dict
+from login_settings import get_settings
 
 if __name__ == "__main__":
     # Read command line arguments
@@ -105,8 +106,7 @@ if __name__ == "__main__":
         sys.exit()     
             
     # Read credentials
-    with open("login.yaml", "r") as fp:
-        settings = yaml.full_load(fp)
+    settings = get_settings()
 
     # Open session
     with TMSSsession(host=settings['host'],

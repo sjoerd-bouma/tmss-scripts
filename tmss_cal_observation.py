@@ -34,26 +34,32 @@ if __name__ == "__main__":
                         default=395, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"HBA station calibration\", default: \"HBA station calibration\"]",
                         default="HBA station calibration", type=str)
-    parser.add_argument("-v", "--verbose", help="Provide detailed output",
-                        action="store_true")
     parser.add_argument("-F", "--fixed_time", help="Fix observation start time (no dynamic scheduling)",
+                        action="store_true")
+    parser.add_argument("-S", "--subband", help="[Correlator] Subbands to select (e.g. '201..400', '128,256,384') [str, default: 201..400]",
+                        default="201..400", type=str)
+    parser.add_argument("-c", "--channels", help="[Correlator] Channels per subband [int, default: 64]",
+                        default=64, type=int)
+    parser.add_argument("-I", "--integration", help="[Correlator] Integration time [float, default: 1]",
+                        default=1, type=float)
+    parser.add_argument("-x", "--xst_subbands", help="[XST] Subband configuration [int, default: 0]",
+                        default=[0], nargs='+', type=int) 
+    parser.add_argument("-p", "--xst_subband_step", help="[XST] Subband step size per integration [int, default: 1]",
+                        default=1, type=int)
+    parser.add_argument("-T", "--xst_integration_time", help="[XST] Integration time per subband captured [float, default: 1.0]",
+                        default=1.0, type=float)
+    parser.add_argument("-N", "--xst_num_cycles", help="[XST] Number of full subband cycles [int, default 1]",
+                        default=1, type=int)
+    parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
                         action="store_true")
-    parser.add_argument("-S", "--subbands", help="Inital subband configuration",
-                        default=[0], nargs='+', type=int)
-    parser.add_argument("-p", "--subband_step", help="Subband step size per integration",
-                        default=1, type=int)
-    parser.add_argument("-T", "--integration_time", help="Integration time per subband captured",
-                        default=1.0, type=float)
-    parser.add_argument("-N", "--num_cycles", help="Number of full subband cycles",
-                        default=1.0, type=float)
     args = parser.parse_args()
 
     # Settings
-    run_spec = {"strategy_name": "FE Stokes I - raw",
+    run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing and XST settings",
                 "description": args.description}
     if args.fixed_time:
         src_spec = {"name": args.source,
@@ -92,30 +98,23 @@ if __name__ == "__main__":
     station_groups = [{"stations": [item],
                        "max_nr_missing": 1} for item in stationlist]
 
-    # Check antenna field against LOFAR2.0 stations
-    #if args.antennafield == "LBA_ALL":
-    #    if not set(stationlist) <= set(["CS001", "CS032", "RS307"]):
-    #        print("Can not use LBA_ALL on LOFAR stations. Exiting.")
-    #        sys.exit()
-
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()
 
-    observation_time = int(ceil(args.integration_time * 512 * args.num_cycles / args.subband_step))
-    # Specify observing mode
-    mode =  {"stokes": "I",
-             "quantisation": {
-                 "bits": 8,
-                 "enabled": False,
-                 "scale_max": 5,
-                 "scale_min": -5,
-             },
-             "subbands_per_file": 488,
-             "channels_per_subband": 16,
-             "time_integration_factor": 512
-             }
+    # Decode subbands
+    if "," in args.subband:
+        subband_list = [int(part) for part in args.subband.split(",")]
+    elif ".." in args.subband:
+        smin = int(args.subband.split("..")[0])
+        smax = int(args.subband.split("..")[-1])
+        subband_list = list(range(smin, smax + 1))
+    else:
+        subband_list = [int(args.subband)]
+
+    # Integration time
+    observation_time = int(ceil(args.xst_integration_time * 512 * args.xst_num_cycles / args.xst_subband_step))
         
     # Read credentials
     settings = get_settings()
@@ -137,6 +136,8 @@ if __name__ == "__main__":
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
 
+        print_dict(spec_doc)
+
         if args.fixed_time:
             spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
             spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
@@ -148,20 +149,20 @@ if __name__ == "__main__":
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = observation_time
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
-        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = [{"subbands": [200],
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'] = [{"subbands": subband_list,
                                                                                                    "digital_pointing": pointing}]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
-        spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
-        spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
+        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
+        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
 
         spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
-                                                                               "integration_interval": args.integration_time,
-                                                                               "subbands": args.subbands,
-                                                                               "subbands_step": args.subband_step}
+                                                                               "integration_interval": args.xst_integration_time,
+                                                                               "subbands": args.xst_subbands,
+                                                                               "subbands_step": args.xst_subband_step}
 
         # Show spec doc
         if args.verbose:

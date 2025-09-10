@@ -40,6 +40,10 @@ if __name__ == "__main__":
                         default=64, type=int)
     parser.add_argument("-I", "--integration", help="Integration time [float, default: 1]",
                         default=1, type=float)
+    parser.add_argument("-C", "--cluster", help="Cluster to record to [str, default: CEP4]",
+                        default="CEP4", type=str)
+    parser.add_argument("-v", "--verbose", help="Provide detailed output",
+                        action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
@@ -140,11 +144,11 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
-
-
+        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
 
         # Show spec doc
-        print_dict(spec_doc, prefix="spec_doc")
+        if args.verbose:
+            print_dict(spec_doc, prefix="spec_doc")
 
         # Skip if not uploaded
         if not args.upload:

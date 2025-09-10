@@ -50,6 +50,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
+    parser.add_argument("-C", "--cluster", help="Cluster to record to [str, default: CEP4]",
+                        default="CEP4", type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -241,7 +243,7 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
-
+        spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['storage_cluster'] = args.cluster
         if xst_spec["enabled"]:
             spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 

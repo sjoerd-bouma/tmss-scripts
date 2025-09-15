@@ -30,4 +30,4 @@ if __name__ == "__main__":
         # Loop over task blueprints
         for task_url in spec_doc["task_blueprints"]:
             spec_doc = client.do_request_and_get_result_as_json_object(method="GET", full_url=task_url)
-            print(spec_doc["subtasks_ids"], spec_doc["name"])
+            print(f"{spec_doc['subtasks_ids']} | {spec_doc['name']} | {spec_doc['url']} | https://{settings['host']}/task/view/blueprint/{spec_doc['id']}")

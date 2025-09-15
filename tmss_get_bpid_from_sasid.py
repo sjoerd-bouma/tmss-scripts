@@ -33,4 +33,6 @@ if __name__ == "__main__":
         # Get blueprint ID
         blueprint_id = task_specdoc["scheduling_unit_blueprint_id"]
         blueprint = task_specdoc["scheduling_unit_blueprint"]
-        print(f"{args.subtask_id} -> {blueprint_id} | {blueprint}")
+        print(f"{args.subtask_id} -> {blueprint_id} | {blueprint} | https://{settings['host']}/schedulingunit/view/blueprint/{blueprint_id}")
+
+        

@@ -40,8 +40,8 @@ if __name__ == "__main__":
                         default=64, type=int)
     parser.add_argument("-I", "--integration", help="Integration time [float, default: 1]",
                         default=1, type=float)
-    parser.add_argument("-C", "--cluster", help="Cluster to record to [str, default: CEP4]",
-                        default="CEP4", type=str)
+    parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
+                        default=None, type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -144,7 +144,8 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
-        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
+        if args.cluster is not None:
+            spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
 
         # Show spec doc
         if args.verbose:

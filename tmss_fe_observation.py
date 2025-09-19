@@ -50,8 +50,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
-    parser.add_argument("-C", "--cluster", help="Cluster to record to [str, default: CEP4]",
-                        default="CEP4", type=str)
+    parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
+                        default=None, type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -205,9 +205,9 @@ if __name__ == "__main__":
         print("Opened TMSS connection")
         
         # Get the latest satellite monitoring template
-        template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'])
+        template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'], version=15)
         print(f"Using strategy template {template['url']}")
-        
+
         # Get the specifications document
         original_spec_doc = client.get_scheduling_unit_observing_strategy_template_specification_with_just_the_parameters(template['name'], template['version'])
 
@@ -243,7 +243,8 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
-        spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['storage_cluster'] = args.cluster
+        if args.cluster is not None:
+            spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['storage_cluster'] = args.cluster
         if xst_spec["enabled"]:
             spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 

@@ -52,6 +52,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
+    parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
+                        default=None, type=int)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -205,7 +207,7 @@ if __name__ == "__main__":
         print("Opened TMSS connection")
         
         # Get the latest satellite monitoring template
-        template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'], version=15)
+        template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'], version=args.strategy_version)
         print(f"Using strategy template {template['url']}")
 
         # Get the specifications document

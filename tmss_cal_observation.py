@@ -52,6 +52,10 @@ if __name__ == "__main__":
                         default=1, type=int)
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
+    parser.add_argument("-o", "--override_strategy", help="Use 'FE Stokes I - raw' instead of 'Simple Imaging Observation with preprocessing and XST settings' strategy",
+                        action="store_true")
+    parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
+                        default=None, type=int)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -63,6 +67,7 @@ if __name__ == "__main__":
     # Settings
     run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing and XST settings",
                 "description": args.description}
+
     if args.fixed_time:
         src_spec = {"name": args.source,
                     "elev_min_deg": 00,
@@ -121,6 +126,24 @@ if __name__ == "__main__":
     # Read credentials
     settings = get_settings()
 
+    # Override strategy
+    if args.override_strategy:
+        run_spec["strategy_name"] = "FE Stokes I - raw"
+
+    # Specify FE observing mode
+    mode = {"stokes": "I",
+            "quantisation": {
+                "bits": 8,
+                "enabled": False,
+                "scale_max": 5,
+                "scale_min": -5,
+            },
+            "subbands_per_file": 488,
+            "channels_per_subband": 16,
+            "time_integration_factor": 512
+            }
+    
+        
     # Open session
     with TMSSsession(host=settings['host'],
                      port=settings['port'],
@@ -129,7 +152,7 @@ if __name__ == "__main__":
         print("Opened TMSS connection")
         
         # Get the latest satellite monitoring template
-        template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'])
+        template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'], version=args.strategy_version)
         print(f"Using strategy template {template['url']}")
         
         # Get the specifications document
@@ -137,8 +160,6 @@ if __name__ == "__main__":
 
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
-
-        print_dict(spec_doc)
 
         if args.fixed_time:
             spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
@@ -158,8 +179,16 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
-        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
-        spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
+
+        # Choose between beamformer and correlator pipelines
+        if args.override_strategy:
+            spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
+            spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
+        else:
+            spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
+            spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
+
+        # Select output cluster    
         if args.cluster is not None:
             spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
 

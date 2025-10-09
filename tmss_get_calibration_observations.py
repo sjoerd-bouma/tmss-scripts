@@ -18,6 +18,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-e", "--tend", help="Start time (isot) [str, default: now]",
                         default=None, type=str)
+    parser.add_argument("-o", "--output", help="Output to file (json) instead of screen) [str, default: None]",
+                        default=None, type=str)
     args = parser.parse_args()
 
     task_type = "observation"
@@ -43,7 +45,12 @@ if __name__ == "__main__":
 
         # Query results
         spec_doc = client.do_request_and_get_result_as_json_object(method="GET", full_url=url)
-        
+
+        # Open file
+        if args.output is not None:
+            with open(args.output, "w") as fp:
+                json.dump(spec_doc["results"], fp)
+                
         # Print results
         for o in spec_doc["results"]:
             blueprint_id = o['scheduling_unit_blueprint_id']
@@ -56,5 +63,7 @@ if __name__ == "__main__":
             antennaset = o['specifications_doc']['station_configuration']['antenna_set']
             station_groups = o['specifications_doc']['station_configuration']['station_groups']
             stations = [s for sg in station_groups for s in sg['stations']]
-            print(f"| {obsid} | {blueprint_id} | {task_type} | {tstart} | {duration:6d} | {antennaset:8s} | {band:11s} | {description} | {stations}")
+
+            if args.output is None:
+                print(f"| {obsid} | {blueprint_id} | {task_type} | {tstart} | {duration:6d} | {antennaset:8s} | {band:11s} | {description} | {stations}")
 

@@ -4,7 +4,7 @@ import yaml
 from getpass import getpass
 from typing import TypedDict, Optional
 
-LOGIN_FILE: str = os.path.join(os.environ.get("TMSS_LOGIN_FILE"), "login.yaml")
+LOGIN_FILE: str = os.environ.get("TMSS_LOGIN_FILE", default="login.yaml")
 
 class LoginSettings(TypedDict):
     username: str

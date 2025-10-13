@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     # Settings
     run_spec = {"strategy_name": "FE Stokes I - raw",
-                "description": "L2TS test observation"}
+                "description": args.description if args.description is not None else args.source}
     src_spec = {"name": args.source,
                 "elev_min_deg": 0,
                 "lst_min_s": -43200,

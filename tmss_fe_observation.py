@@ -32,7 +32,7 @@ if __name__ == "__main__":
                         default=300, type=int)
     parser.add_argument("-L", "--stationlist", help="Station to use [str, default: CS001, can be multiple, e.g. \"CS001,CS002,CS003\"]",
                         default="CS001", type=str)
-    parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 305]",
+    parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 432]",
                         default=305, type=int)
     parser.add_argument("-p", "--pointings", help="Override source pointing (can be multiple) [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
                         default=None, type=str, action="append")

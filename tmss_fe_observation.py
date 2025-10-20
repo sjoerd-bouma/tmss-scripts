@@ -50,6 +50,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
+    parser.add_argument("-1", "--missing_station", help="Allows each station to be missed from the observation",
+                        action="store_true")
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
     parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
@@ -133,8 +135,12 @@ if __name__ == "__main__":
 
     # Station groups for Fly's Eye observations
     stationlist = [item for item in args.stationlist.split(",")]
-    station_groups = [{"stations": [item],
-                       "max_nr_missing": 0} for item in stationlist]
+    if args.missing_station:
+        station_groups = [{"stations": [item for item in stationlist],
+                           "max_nr_missing": len(stationlist) - 1}]
+    else:
+        station_groups = [{"stations": [item],
+                           "max_nr_missing": 0} for item in stationlist]
 
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):

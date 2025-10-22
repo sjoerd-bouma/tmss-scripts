@@ -40,6 +40,8 @@ if __name__ == "__main__":
                         default=64, type=int)
     parser.add_argument("-I", "--integration", help="Integration time [float, default: 1]",
                         default=1, type=float)
+    parser.add_argument("-r", "--rfistrategy", help="Pipeline RFI strategy to use (e.g. LBA or HBA) [str, default: chosen by antennafield]",
+                        default=None, type=str)
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
@@ -146,6 +148,27 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
         if args.cluster is not None:
             spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
+
+        # Specify RFI strategy
+        if args.rfistrategy is None:
+            if "HBA" in args.antennafield:
+                strategy = "HBAdefault"
+            elif "LBA" in args.antennafield:
+                strategy = "LBAdefault"
+            else:
+                print("RFI flagging strategy undefined.")
+                print()
+                sys.exit()
+        else:
+            if "HBA" in args.rfistrategy:
+                strategy = "HBAdefault"
+            elif "LBA" in args.rfistrategy:
+                strategy = "LBAdefault"
+            else:
+                print("RFI flagging strategy undefined.")
+                print()
+                sys.exit()
+        spec_doc['tasks']['Pipeline']['specifications_doc']['flag']['rfi_strategy'] = strategy
 
         # Show spec doc
         if args.verbose:

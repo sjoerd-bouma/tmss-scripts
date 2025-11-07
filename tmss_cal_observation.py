@@ -190,8 +190,11 @@ if __name__ == "__main__":
 
         # Select output cluster    
         if args.cluster is not None:
-            spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
-
+            if args.override_strategy:
+                spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['storage_cluster'] = args.cluster
+            else:
+                spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
+                
         spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
                                                                                "integration_interval": args.xst_integration_time,
                                                                                "subbands": args.xst_subbands,

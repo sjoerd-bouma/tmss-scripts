@@ -65,10 +65,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
-    if "USER" in os.environ:
-        su_name = f"{args.source} ({os.environ['USER']})"
-    else:
-        su_name = {args.source}
     run_spec = {"strategy_name": "FE Stokes I - raw",
                 "description": args.description if args.description is not None else "Fly's Eye observation"}
     src_spec = {"name": args.source,
@@ -209,6 +205,9 @@ if __name__ == "__main__":
     # Read credentials
     settings = get_settings()
 
+    # Set scheduling unit name
+    su_name = f"{args.source} ({settings['username']})"
+    
     # Open session
     with TMSSsession(host=settings['host'],
                      port=settings['port'],

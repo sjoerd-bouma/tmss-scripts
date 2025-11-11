@@ -65,10 +65,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
-    if "USER" in os.environ:
-        su_name = f"{args.source} ({os.environ['USER']})"
-    else:
-        su_name = {args.source}
     run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing and XST settings",
                 "description": args.description if args.description is not None else "Station calibration observation"}
 
@@ -127,9 +123,6 @@ if __name__ == "__main__":
     # Integration time
     observation_time = int(ceil(args.xst_integration_time * 512 * args.xst_num_cycles / args.xst_subband_step))
         
-    # Read credentials
-    settings = get_settings()
-
     # Override strategy
     if args.override_strategy:
         run_spec["strategy_name"] = "FE Stokes I - raw"
@@ -147,7 +140,12 @@ if __name__ == "__main__":
             "time_integration_factor": 512
             }
     
-        
+    # Read credentials
+    settings = get_settings()
+
+    # Set scheduling unit name
+    su_name = f"{args.source} ({settings['username']})"
+     
     # Open session
     with TMSSsession(host=settings['host'],
                      port=settings['port'],

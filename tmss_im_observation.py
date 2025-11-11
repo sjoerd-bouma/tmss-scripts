@@ -42,6 +42,10 @@ if __name__ == "__main__":
                         default=1, type=float)
     parser.add_argument("-r", "--rfistrategy", help="Pipeline RFI strategy to use (e.g. LBA or HBA) [str, default: chosen by antennafield]",
                         default=None, type=str)
+    parser.add_argument("-m", "--missing_stations", help="Specify number of stations that can be missed [int, default: all but one]",
+                        default=None, type=int)
+    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will \"Imaging observation\"]",
+                        default=None, type=str)
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
@@ -53,8 +57,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
+    if "USER" in os.environ:
+        su_name = f"{args.source} ({os.environ['USER']})"
+    else:
+        su_name = {args.source}
     run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing",
-                "description": "L2TS test observation"}
+                "description": args.description if args.description is not None else "Imaging observation"}
     src_spec = {"name": args.source,
                 "elev_min_deg": 0,
                 "lst_min_s": -43200,
@@ -99,10 +107,14 @@ if __name__ == "__main__":
     
     # Stations
     stations = args.stations.split(",")
+    if args.missing_stations is not None:
+        missing_stations = args.missing_stations
+    else:
+        missing_stations = len(stations) -1
     station_groups = [
         {
             "stations": stations, 
-            "max_nr_missing": 0  
+            "max_nr_missing": missing_stations
         }
     ]
     
@@ -181,7 +193,7 @@ if __name__ == "__main__":
             sys.exit()
 
         # Create scheduling unit
-        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, src_spec["name"], run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
+        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, su_name, run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
 
         # Patch scheduling unit with keys that are not included in the strategy
         print(f"Created SU draft {scheduling_unit_draft['id']} for {src_spec['name']} at {scheduling_unit_draft['url']}")

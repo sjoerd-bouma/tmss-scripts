@@ -46,7 +46,7 @@ if __name__ == "__main__":
                         default=1, type=int)
     parser.add_argument("-N", "--subbands_per_file", help="Number of subbands per file [int, default: 488 for mode I, 20 for mode XX]",
                         default=None, type=int)
-    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use source name]",
+    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use \"Fly's Eye observation\"]",
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
@@ -65,8 +65,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
+    if "USER" in os.environ:
+        su_name = f"{args.source} ({os.environ['USER']})"
+    else:
+        su_name = {args.source}
     run_spec = {"strategy_name": "FE Stokes I - raw",
-                "description": args.description if args.description is not None else args.source}
+                "description": args.description if args.description is not None else "Fly's Eye observation"}
     src_spec = {"name": args.source,
                 "elev_min_deg": 0,
                 "lst_min_s": -43200,
@@ -267,7 +271,7 @@ if __name__ == "__main__":
             sys.exit()
 
         # Create scheduling unit
-        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, src_spec["name"], run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
+        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, su_name, run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
 
         # Patch scheduling unit with keys that are not included in the strategy
         print(f"Created SU draft {scheduling_unit_draft['id']} for {src_spec['name']} at {scheduling_unit_draft['url']}")

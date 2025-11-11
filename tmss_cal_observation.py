@@ -65,8 +65,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
+    if "USER" in os.environ:
+        su_name = f"{args.source} ({os.environ['USER']})"
+    else:
+        su_name = {args.source}
     run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing and XST settings",
-                "description": args.description}
+                "description": args.description if args.description is not None else "Station calibration observation"}
 
     if args.fixed_time:
         src_spec = {"name": args.source,
@@ -211,7 +215,7 @@ if __name__ == "__main__":
             sys.exit()
 
         # Create scheduling unit
-        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, src_spec["name"], run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
+        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, su_name, run_spec['description'], src_spec['priority_queue'], src_spec['rank'])
 
         # Patch scheduling unit with keys that are not included in the strategy
         print(f"Created SU draft {scheduling_unit_draft['id']} for {src_spec['name']} at {scheduling_unit_draft['url']}")

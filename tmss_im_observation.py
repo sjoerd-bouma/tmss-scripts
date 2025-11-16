@@ -57,9 +57,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Settings
+    source_name = args.source
     run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing",
                 "description": args.description if args.description is not None else "Imaging observation"}
-    src_spec = {"name": args.source,
+    src_spec = {"name": source_name,
                 "elev_min_deg": 0,
                 "lst_min_s": -43200,
                 "lst_max_s": 43200,
@@ -68,8 +69,8 @@ if __name__ == "__main__":
 
     # Get pointing
     if args.pointing is None:
-        p = get_icrs_coordinates(args.source)
-        pointing = {"target": args.source,
+        p = get_icrs_coordinates(source_name)
+        pointing = {"target": source_name,
                     "angle1": p.ra.rad,
                     "angle2": p.dec.rad,
                     "direction_type": "J2000"}
@@ -81,6 +82,7 @@ if __name__ == "__main__":
                     "angle2": float(parts[2]),
                     "direction_type": parts[3]}
         src_spec["name"] = parts[0]
+        source_name = parts[0]
 
     # Decode subbands
     if "," in args.subband:
@@ -123,7 +125,7 @@ if __name__ == "__main__":
     settings = get_settings()
 
     # Set scheduling unit name
-    su_name = f"{args.source} ({settings['username']})"
+    su_name = f"{source_name} ({settings['username']})"
 
     # Open session
     with TMSSsession(host=settings['host'],

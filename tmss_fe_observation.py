@@ -208,7 +208,7 @@ if __name__ == "__main__":
     settings = get_settings()
 
     # Set scheduling unit name
-    su_name = f"{args.source} ({settings['username']})"
+    su_name = f"{source_name} ({settings['username']})"
     
     # Open session
     with TMSSsession(host=settings['host'],

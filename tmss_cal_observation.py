@@ -20,40 +20,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Schedule station calibration observations in TMSS")
     parser.add_argument("-s", "--source", help="Source to observe [str, default: strategy default] (uses Simbad name resolver)",
                         default=None, type=str)
-#    parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
-#                        default="HBA_DUAL", type=str)
-#    parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
-#                        default="HBA_110_190", type=str)
-#    parser.add_argument("-t", "--tstart", help="Time between start (isot) [str, default: now]",
-#                        default=None, type=str)
-#    parser.add_argument("-w", "--window", help="Time between window length (d) [float, default: 1]",
-#                        default=1.0, type=float)
+    parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
+                        default="HBA_DUAL", type=str)
+    parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
+                        default="HBA_110_190", type=str)
+    parser.add_argument("-t", "--tstart", help="Time between start (isot) [str, default: now]",
+                        default=None, type=str)
+    parser.add_argument("-w", "--window", help="Time between window length (hours) [float, default: 24]",
+                        default=24.0, type=float)
     parser.add_argument("-L", "--stations", help="Station to use [str, default: strategy default, can be multiple, e.g. \"CS001,CS002,CS003\"]",
                         default=None, type=str)
-#    parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 395]",
-#                        default=395, type=int)
+    parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 395]",
+                        default=395, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"HBA station calibration\", default: \"HBA station calibration\"]",
                         default="HBA station calibration", type=str)
-#    parser.add_argument("-F", "--fixed_time", help="Fix observation start time (no dynamic scheduling)",
-#                        action="store_true")
-#    parser.add_argument("-S", "--subband", help="[Correlator] Subbands to select (e.g. '201..400', '128,256,384') [str, default: 201..400]",
-#                        default="201..400", type=str)
-#    parser.add_argument("-c", "--channels", help="[Correlator] Channels per subband [int, default: 64]",
-#                        default=64, type=int)
-#    parser.add_argument("-I", "--integration", help="[Correlator] Integration time [float, default: 1]",
-#                        default=1, type=float)
-#    parser.add_argument("-x", "--xst_subbands", help="[XST] Subband configuration [int, default: 0]",
-#                        default=[0], nargs='+', type=int) 
-#    parser.add_argument("-p", "--xst_subband_step", help="[XST] Subband step size per integration [int, default: 1]",
-#                        default=1, type=int)
-#    parser.add_argument("-T", "--xst_integration_time", help="[XST] Integration time per subband captured [float, default: 1.0]",
-#                        default=1.0, type=float)
-#    parser.add_argument("-N", "--xst_num_cycles", help="[XST] Number of full subband cycles [int, default 1]",
-#                        default=1, type=int)
-#    parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
-#                        default=None, type=str)
-#    parser.add_argument("-o", "--override_strategy", help="Use 'FE Stokes I - raw' instead of 'Simple Imaging Observation with preprocessing and XST settings' strategy",
-#                        action="store_true")
+    parser.add_argument("-F", "--fixed_time", help="Fix observation start time (no dynamic scheduling)",
+                        action="store_true")
+    parser.add_argument("-x", "--xst_subbands", help="[XST] Subband configuration (e.g. 0 1 2 3 4 5 6) [list of ints, default: strategy default]",
+                        default=None, nargs='+', type=int) 
+    parser.add_argument("-p", "--xst_subband_step", help="[XST] Subband step size per integration [int, default: strategy default]",
+                        default=None, type=int)
+    parser.add_argument("-T", "--xst_integration_time", help="[XST] Integration time per subband captured [float, default: strategy default]",
+                        default=None, type=float)
+    parser.add_argument("-N", "--xst_num_cycles", help="[XST] Number of full subband cycles [int, default: strategy default]",
+                        default=None, type=int)
     parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
                         default=None, type=int)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
@@ -64,12 +54,33 @@ if __name__ == "__main__":
                         action="store_true")
     args = parser.parse_args()
 
+    # Check if filter is compatible with antenna set
+    if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
+        print("Wrong combination of antennafield and filter selection. Exiting.")
+        sys.exit()
+    
     # Settings
-    strategy_name = "HBA station calibration"
+    if "HBA" in args.antennafield:
+        strategy_name = "HBA station calibration"
+    elif "LBA" in args.antennafield:
+        strategy_name = "LBA station calibration"
     description = args.description if args.description is not None else "Station calibration observation"
 
+    # Start time
+    if args.tstart is None:
+        # Round to start of minute
+        tstart = datetime.now(UTC)
+    else:
+        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
+    tend = tstart + timedelta(hours=args.window) 
+    tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
+    tend = tend.strftime("%Y-%m-%dT%H:%M:%S")
+    if args.fixed_time:
+        tend = None
+    
     # Get pointing
     if args.source is not None:
+        source_name = args.source
         p = get_icrs_coordinates(args.source)
         pointing = {"target": args.source,
                     "angle1": p.ra.rad,
@@ -85,13 +96,16 @@ if __name__ == "__main__":
                 "max_nr_missing": len(stations) - 1
             }
         ] 
-    
+
+    # Observation duration
+    if args.xst_subbands is not None and args.xst_integration_time is not None and args.xst_num_cycles is not None and args.xst_subband_step is not None:
+        duration = int(ceil(args.xst_integration_time * 512 * args.xst_num_cycles / args.xst_subband_step))
+    else:
+        duration = None
+
     # Read credentials
     settings = get_settings()
 
-    # Set scheduling unit name
-    su_name = f"{args.source} ({settings['username']})"
-     
     # Open session
     with TMSSsession(host=settings['host'],
                      port=settings['port'],
@@ -121,6 +135,29 @@ if __name__ == "__main__":
             spec_doc['tasks']['BackToDefault Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
             spec_doc['tasks']['BackToDefault Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
 
+        # Filter/antenna field
+        if args.antennafield is not None:
+            spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
+        if args.filter is not None:
+            spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
+
+        # Set duration and XST settings
+        if duration is not None:
+            spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['duration'] = duration
+            spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
+                                                                                                       "integration_interval": args.xst_integration_time,
+                                                                                                       "subbands": args.xst_subbands,
+                                                                                                       "subbands_step": args.xst_subband_step}
+
+        # Timing constraints
+        if args.fixed_time:
+            spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
+        else:
+            spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
+
+            
         # Show spec doc
         if args.verbose:
             print_dict(spec_doc, prefix="spec_doc")
@@ -131,11 +168,17 @@ if __name__ == "__main__":
             print()
             sys.exit()
 
+        # Set scheduling unit name
+        source_name = spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['station_configuration']['tile_beam']['target']
+        su_name = f"{source_name} ({settings['username']})"
+        priority_queue = "A"
+        rank = 1.00
+            
         # Create scheduling unit
-        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, su_name, description, src_spec['priority_queue'], src_spec['rank'])
+        scheduling_unit_draft = client.create_scheduling_unit_draft_from_strategy_template(template['id'], args.scheduling_set_id, spec_doc, su_name, description, priority_queue, rank)
 
         # Patch scheduling unit with keys that are not included in the strategy
-        print(f"Created SU draft {scheduling_unit_draft['id']} for {src_spec['name']} at {scheduling_unit_draft['url']}")
+        print(f"Created SU draft {scheduling_unit_draft['id']} for {source_name} at {scheduling_unit_draft['url']}")
 
         # Skip if not blueprinted
         if not args.blueprint:
@@ -145,5 +188,5 @@ if __name__ == "__main__":
 
         # Blueprint SU
         scheduling_unit_blueprint = client.create_scheduling_unit_blueprint_and_tasks_and_subtasks_tree(scheduling_unit_draft['id'])
-        print(f"Created SU blueprint {scheduling_unit_blueprint['id']} for {src_spec['name']} at {scheduling_unit_blueprint['url']}")
+        print(f"Created SU blueprint {scheduling_unit_blueprint['id']} for {source_name} at {scheduling_unit_blueprint['url']}")
         

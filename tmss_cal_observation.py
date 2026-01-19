@@ -98,10 +98,10 @@ if __name__ == "__main__":
         ] 
 
     # Observation duration
-    if args.xst_subbands is not None and args.xst_integration_time is not None and args.xst_num_cycles is not None and args.xst_subband_step is not None:
-        duration = int(ceil(args.xst_integration_time * 512 * args.xst_num_cycles / args.xst_subband_step))
-    else:
-        duration = None
+    #if args.xst_subbands is not None and args.xst_integration_time is not None and args.xst_num_cycles is not None and args.xst_subband_step is not None:
+    #    duration = int(ceil(args.xst_integration_time * 512 * args.xst_num_cycles / args.xst_subband_step))
+    #else:
+    #    duration = None
 
     # Read credentials
     settings = get_settings()
@@ -123,6 +123,28 @@ if __name__ == "__main__":
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
 
+        # Get XST settings
+        if args.xst_integration_time is None:
+            xst_integration_time = spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['QA']['XST']['integration_interval']
+        else:
+            xst_integration_time = args.xst_integration_time
+        if args.xst_subbands is None:
+            xst_subbands = spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['QA']['XST']['subbands']
+        else:
+            xst_subbands = args.xst_subbands
+        if args.xst_subband_step is None:
+            xst_subband_step = spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['QA']['XST']['subbands_step']
+        else:
+            xst_subband_step = args.xst_subband_step
+        if args.xst_num_cycles is None:
+            duration = spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['duration']
+            xst_num_cycles = round(duration * xst_subband_step / (512 * xst_integration_time))
+        else:
+            xst_num_cycles = args.xst_num_cycles
+
+        # Compute duration
+        duration = int(ceil(xst_integration_time * 512 * xst_num_cycles / xst_subband_step))
+        
         # Set pointings
         if args.source is not None:
             spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing

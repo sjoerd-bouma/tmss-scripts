@@ -167,9 +167,9 @@ if __name__ == "__main__":
         if duration is not None:
             spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['duration'] = duration
             spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['QA']['XST'] = {"enabled": True,
-                                                                                                       "integration_interval": args.xst_integration_time,
-                                                                                                       "subbands": args.xst_subbands,
-                                                                                                       "subbands_step": args.xst_subband_step}
+                                                                                                       "integration_interval": xst_integration_time,
+                                                                                                       "subbands": xst_subbands,
+                                                                                                       "subbands_step": xst_subband_step}
 
         # Timing constraints
         if args.fixed_time:

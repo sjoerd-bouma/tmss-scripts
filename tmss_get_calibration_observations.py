@@ -53,6 +53,8 @@ if __name__ == "__main__":
                 
         # Print results
         for o in spec_doc["results"]:
+            if o["status"] != "finished":
+                continue
             blueprint_id = o['scheduling_unit_blueprint_id']
             description = o['short_description']
             duration = o['specifications_doc']['duration']

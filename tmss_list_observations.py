@@ -72,7 +72,7 @@ if __name__ == "__main__":
             station_string = station_string.rstrip()
             
             if "LBA" in antennaset:
-                cmd = f"python l2json/quick_impl.py --tstart {tstart} --duration {duration} --output_pattern \"/home/bassa/calibration/{{start}}_L{obsid}_{{station}}{{field}}_{{datatype}}.h5\" --station {station_string} --type XST --field LBA"
+                cmd = f"l2json_minio_pull --tstart {tstart} --duration {duration} --output_pattern \"{{start}}_L{obsid}_{{station}}{{field}}_{{datatype}}.h5\" --station {station_string} --type XST --field LBA --disable_security"
             elif "HBA_DUAL" in antennaset:
-                cmd = f"python l2json/quick_impl.py --tstart {tstart} --duration {duration} --output_pattern \"/home/bassa/calibration/{{start}}_L{obsid}_{{station}}{{field}}_{{datatype}}.h5\" --station {station_string} --type XST --field HBA0 HBA1 HBA"
+                cmd = f"l2json_minio_pull --tstart {tstart} --duration {duration} --output_pattern \"{{start}}_L{obsid}_{{station}}{{field}}_{{datatype}}.h5\" --station {station_string} --type XST --field HBA0 HBA1 HBA --disable_security"
             print(cmd)

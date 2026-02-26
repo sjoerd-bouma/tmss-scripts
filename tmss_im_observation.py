@@ -46,6 +46,8 @@ if __name__ == "__main__":
                         default=None, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will \"Imaging observation\"]",
                         default=None, type=str)
+    parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
+                        default=None, type=str)
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
@@ -84,6 +86,19 @@ if __name__ == "__main__":
         src_spec["name"] = parts[0]
         source_name = parts[0]
 
+    # Get XST settings
+    if args.xst is not None:
+        parts = args.xst.split(",")
+        xst_spec = {"enabled": True,
+                    "subbands": [int(parts[0])],
+                    "subbands_step": int(parts[1]),
+                    "integration_interval": float(parts[2])}
+    else:
+        xst_spec = {"enabled": False,
+                    "subbands": [300],
+                    "subbands_step": 0,
+                    "integration_interval": 1.0}
+        
     # Decode subbands
     if "," in args.subband:
         subband_list = [int(part) for part in args.subband.split(",")]
@@ -161,6 +176,8 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
         if args.cluster is not None:
             spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
+        if xst_spec["enabled"]:
+            spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 
         # Specify RFI strategy
         if args.rfistrategy is None:

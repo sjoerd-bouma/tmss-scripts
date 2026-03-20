@@ -42,7 +42,7 @@ if __name__ == "__main__":
                         default=1, type=float)
     parser.add_argument("-r", "--rfistrategy", help="Pipeline RFI strategy to use (e.g. LBA or HBA) [str, default: chosen by antennafield]",
                         default=None, type=str)
-    parser.add_argument("-m", "--missing_stations", help="Specify number of stations that can be missed [int, default: all but one]",
+    parser.add_argument("-m", "--missing_stations", help="Specify number of stations that can be missed [int, default: 25%% of all stations]",
                         default=None, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will \"Imaging observation\"]",
                         default=None, type=str)
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     if args.missing_stations is not None:
         missing_stations = args.missing_stations
     else:
-        missing_stations = len(stations) -1
+        missing_stations = int(0.25 * len(stations))
     station_groups = [
         {
             "stations": stations, 

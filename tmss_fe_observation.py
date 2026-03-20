@@ -5,12 +5,14 @@ import yaml
 import argparse
 from datetime import datetime, timedelta, UTC
 
+import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 
 from print_dict import print_dict
+from station_selection import get_imaging_station_selection
 from login_settings import get_settings
 
 if __name__ == "__main__":
@@ -30,10 +32,10 @@ if __name__ == "__main__":
                         default=60, type=int)
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
-    parser.add_argument("-L", "--stationlist", help="Station to use [str, default: CS001, can be multiple, e.g. \"CS001,CS002,CS003\"]",
-                        default="CS001", type=str)
+    parser.add_argument("-L", "--stations", help="Stations to use [str (case insensitive), examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\", default: Dutch]",
+                        default="Dutch", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 432]",
-                        default=305, type=int)
+                        default=432, type=int)
     parser.add_argument("-p", "--pointings", help="Override source pointing (can be multiple) [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
                         default=None, type=str, action="append")
     parser.add_argument("-m", "--mode", help="Observing mode (I, IQUV or XXYY) [str, default: I]",
@@ -50,8 +52,6 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
-    parser.add_argument("-1", "--missing_station", help="Allows each station to be missed from the observation",
-                        action="store_true")
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
     parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
@@ -136,13 +136,9 @@ if __name__ == "__main__":
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
 
     # Station groups for Fly's Eye observations
-    stationlist = [item for item in args.stationlist.split(",")]
-    if args.missing_station:
-        station_groups = [{"stations": [item for item in stationlist],
-                           "max_nr_missing": len(stationlist) - 1}]
-    else:
-        station_groups = [{"stations": [item],
-                           "max_nr_missing": 0} for item in stationlist]
+    stations = get_imaging_station_selection(args.stations)
+    station_groups = [{"stations": [item for item in stations],
+                       "max_nr_missing": len(stations) - 1}]
 
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
@@ -217,7 +213,7 @@ if __name__ == "__main__":
                      password=settings['password']) as client:
         print("Opened TMSS connection")
         
-        # Get the latest satellite monitoring template
+        # Get the template
         template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'], version=args.strategy_version)
         print(f"Using strategy template {template['url']}")
 

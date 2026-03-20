@@ -12,7 +12,7 @@ def get_imaging_station_selection(stations):
                    "RS508", "RS509"]
     int_stations = ["DE601", "DE602", "DE603", "DE604", "DE605", "FR606",
                     "SE607", "UK608", "DE609", "PL610", "PL611", "PL612",
-                    "IE613", "LV614", "IT615", "BG616"]
+                    "IE613", "LV614"] #, "IT615", "BG616"]
     dutch_stations = cs_stations + rs_stations
     all_stations = dutch_stations + int_stations
 
@@ -32,4 +32,5 @@ def get_imaging_station_selection(stations):
     # Specific selection
     input_stations = stations.split(",")
     stations = [station for station in input_stations if station in all_stations]
+    
     return stations

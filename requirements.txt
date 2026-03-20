@@ -5,3 +5,7 @@ lofar_tmss_client>=2.0.1 # GPLv3
 tmss-pycommon>=1.0 # GPLv3
 tmss-pymessaging>=1.0 # GPLv3
 pyyaml
+datetime
+argparse
+numpy
+astropy

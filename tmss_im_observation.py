@@ -5,12 +5,14 @@ import yaml
 import argparse
 from datetime import datetime, timedelta, UTC
 
+import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 
 from print_dict import print_dict
+from station_selection import get_imaging_station_selection
 from login_settings import get_settings
 
 if __name__ == "__main__":
@@ -30,8 +32,8 @@ if __name__ == "__main__":
                         default=60, type=int)
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
-    parser.add_argument("-L", "--stations", help="Stations to use [str, default: CS001,CS032,RS307]",
-                        default="CS001,CS032,RS307", type=str)
+    parser.add_argument("-L", "--stations", help="Stations to use [str (case insensitive), examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\", default: Dutch]",
+                        default="Dutch", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 345]",
                         default=345, type=int)
     parser.add_argument("-p", "--pointing", help="Override source pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
@@ -119,18 +121,18 @@ if __name__ == "__main__":
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
     
     # Stations
-    stations = args.stations.split(",")
+    stations = get_imaging_station_selection(args.stations)
     if args.missing_stations is not None:
         missing_stations = args.missing_stations
     else:
-        missing_stations = int(0.25 * len(stations))
+        missing_stations = max(1, int(np.ceil(0.25 * len(stations))))
     station_groups = [
         {
             "stations": stations, 
             "max_nr_missing": missing_stations
         }
     ]
-    
+
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")

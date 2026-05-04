@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 446]",
-                        default=446, type=int)
+                        default=358, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use \"Strategy test\"]",
                         default=None, type=str)
     parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",

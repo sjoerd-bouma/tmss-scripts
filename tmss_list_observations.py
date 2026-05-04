@@ -46,13 +46,10 @@ if __name__ == "__main__":
         # Query results
         spec_doc = client.do_request_and_get_result_as_json_object(method="GET", full_url=url)
 
-        #print(f"|| OBSID || BP ID || Task || Start || Duration || Antenna Set || Band || Description | Stations |")
+        print(f"|| OBSID || BP ID || Task || Start || Duration || Antenna Set || Band || Description | Stations |")
 
-        #print_dict(spec_doc, prefix="spec_doc")
-        
         # Print results
         for o in spec_doc["results"]:
-#            print(o)
             blueprint_id = o['scheduling_unit_blueprint_id']
             description = o['short_description']
             duration = o['specifications_doc']['duration']
@@ -63,16 +60,5 @@ if __name__ == "__main__":
             antennaset = o['specifications_doc']['station_configuration']['antenna_set']
             station_groups = o['specifications_doc']['station_configuration']['station_groups']
             stations = [s for sg in station_groups for s in sg['stations']]
-            #print(f"| {obsid} | {blueprint_id} | {task_type} | {tstart} | {duration:6d} | {antennaset:8s} | {band:11s} | {description} | {stations}")
+            print(f"| {obsid} | {blueprint_id} | {task_type} | {tstart} | {duration:6d} | {antennaset:8s} | {band:11s} | {description} | {stations}")
 
-            # Create station string
-            station_string = ""
-            for station in stations:
-                station_string += f"{station} "
-            station_string = station_string.rstrip()
-            
-            if "LBA" in antennaset:
-                cmd = f"l2json_minio_pull --tstart {tstart} --duration {duration} --output_pattern \"{{start}}_L{obsid}_{{station}}{{field}}_{{datatype}}.h5\" --station {station_string} --type XST --field LBA --disable_security"
-            elif "HBA_DUAL" in antennaset:
-                cmd = f"l2json_minio_pull --tstart {tstart} --duration {duration} --output_pattern \"{{start}}_L{obsid}_{{station}}{{field}}_{{datatype}}.h5\" --station {station_string} --type XST --field HBA0 HBA1 HBA --disable_security"
-            print(cmd)

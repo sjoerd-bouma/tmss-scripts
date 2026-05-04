@@ -44,7 +44,7 @@ if __name__ == "__main__":
                         default=16, type=int)
     parser.add_argument("-N", "--subbands_per_file", help="Number of subbands per file [int, default: 488 for mode I, 20 for mode XX]",
                         default=None, type=int)
-    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use \"Fly's Eye observation\"]",
+    parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will use \"Beamformed observation\"]",
                         default=None, type=str)
     parser.add_argument("-r", "--tab_rings", help="TAB ring specification (number of rings, spacing [deg]) [str, example \"2,0.5\", default: None]",
                         default=None, type=str)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         # Show spec doc
         if args.verbose:
             print_dict(spec_doc, prefix="spec_doc")
-            
+           
         # Skip if not uploaded
         if not args.upload:
             print("No scheduling units uploaded to TMSS.")

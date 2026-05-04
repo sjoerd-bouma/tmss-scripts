@@ -82,8 +82,8 @@ if __name__ == "__main__":
         results = client.get_url_as_json_object(full_url=url)
 
         # Color definition
-        states = ["finished", "error", "schedulable", "unschedulable", "observed", "cancelled", "started", "scheduled", "queued", "defined"]
-        statecolors = ["green", "red", "blue", (135, 206, 235), "green", (255, 165, 0), "yellow", (0, 0, 100), "cyan", "magenta"]
+        states = ["finished", "error", "schedulable", "unschedulable", "observed", "cancelled", "started", "scheduled", "queued", "defined", "on hold"]
+        statecolors = ["green", "red", "blue", (135, 206, 235), "green", (255, 165, 0), "yellow", (0, 0, 100), "cyan", "magenta", "light_red"]
         
         # Loop over results to generate output dictionary
         output_results = []

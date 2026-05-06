@@ -3,10 +3,8 @@ import sys
 import yaml
 import argparse
 
-from lofar_tmss_client.tmss_http_rest_client import TMSSsession
-
 from print_dict import print_dict
-from login_settings import get_settings
+from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
     # Read command line arguments
@@ -18,10 +16,7 @@ if __name__ == "__main__":
     # Read credentials
     settings = get_settings()
     
-    with TMSSsession(host=settings['host'],
-                     port=settings['port'],
-                     username=settings['username'],
-                     password=settings['password']) as client:
+    with get_tmss_session(settings) as client:
 
         # Get subtask specdoc
         url = f"https://{settings['host']}/api/subtask/{args.subtask_id}"

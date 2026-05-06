@@ -11,8 +11,7 @@ import numpy as np
 from print_dict import print_dict
 from datetime import datetime, timedelta, UTC
 
-from lofar_tmss_client.tmss_http_rest_client import TMSSsession
-from login_settings import get_settings
+from login_settings import get_settings, get_tmss_session
 
 def set_length(s, nchar):
     length = len(s)
@@ -66,10 +65,7 @@ if __name__ == "__main__":
     # Read credentials
     settings = get_settings()
 
-    with TMSSsession(host=settings['host'],
-                     port=settings['port'],
-                     username=settings['username'],
-                     password=settings['password']) as client:
+    with get_tmss_session(settings) as client:
 
         # Format URL
         url = f"https://tmss.lofar.eu/api/scheduling_unit_blueprint_slim_with_tasks?on_sky_start_time_after={tstart}&on_sky_start_time_before={tend}&ordering=on_sky_start_time"

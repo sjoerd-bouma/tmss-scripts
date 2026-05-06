@@ -13,7 +13,7 @@ from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 
 from print_dict import print_dict
 from station_selection import get_imaging_station_selection
-from login_settings import get_settings
+from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
     # Read command line arguments
@@ -194,10 +194,7 @@ if __name__ == "__main__":
     su_name = f"{source_name} ({settings['username']})"
     
     # Open session
-    with TMSSsession(host=settings['host'],
-                     port=settings['port'],
-                     username=settings['username'],
-                     password=settings['password']) as client:
+    with get_tmss_session(settings) as client:
         print("Opened TMSS connection")
         
         # Get the template

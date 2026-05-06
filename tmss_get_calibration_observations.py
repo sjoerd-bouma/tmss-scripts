@@ -7,8 +7,7 @@ import argparse
 from print_dict import print_dict
 from datetime import datetime, timedelta, UTC
 
-from lofar_tmss_client.tmss_http_rest_client import TMSSsession
-from login_settings import get_settings
+from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
     # Read command line arguments
@@ -34,10 +33,7 @@ if __name__ == "__main__":
     # Read credentials
     settings = get_settings()
 
-    with TMSSsession(host=settings['host'],
-                     port=settings['port'],
-                     username=settings['username'],
-                     password=settings['password']) as client:
+    with get_tmss_session(settings) as client:
 
         # Format URL
         url = f"https://tmss.lofar.eu/api/subtask?state__value=&cluster__name=&cluster__name__icontains=&id=&id_min=&id_max=&state=finished&name=&error_reason=&on_sky_start_time__lt=&on_sky_start_time__gt={tstart}&on_sky_stop_time__lt={tend}&on_sky_stop_time__gt=&process_start_time__lt=&process_start_time__gt=&process_stop_time__lt=&process_stop_time__gt=&scheduled_start_time__lt=&scheduled_start_time__gt=&scheduled_stop_time__lt=&scheduled_stop_time__gt=&actual_on_sky_start_time__lt=&actual_on_sky_start_time__gt=&actual_on_sky_stop_time__lt=&actual_on_sky_stop_time__gt=&actual_process_start_time__lt=&actual_process_start_time__gt=&actual_process_stop_time__lt=&actual_process_stop_time__gt=&project=Calibration&subtask_type={subtask_type}&is_using_lofar2_stations=unknown&is_using_any_lofar2_stations=unknown&is_obsolete=unknown"

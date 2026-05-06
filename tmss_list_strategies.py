@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import yaml
 
-from lofar_tmss_client.tmss_http_rest_client import TMSSsession
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":

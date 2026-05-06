@@ -9,8 +9,6 @@ import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
-from lofar_tmss_client.tmss_http_rest_client import TMSSsession
-
 from print_dict import print_dict
 from station_selection import get_imaging_station_selection
 from login_settings import get_settings, get_tmss_session

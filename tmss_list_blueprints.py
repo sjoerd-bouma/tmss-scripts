@@ -50,6 +50,8 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-u", "--unpin", help="Unpin blueprint to run clean up task",
                         action="store_true")
+#    parser.add_argument("-c", "--cancel_pipeline", help="Cancel pipeline task",
+#                        action="store_true")
     args = parser.parse_args()
 
     subtask_type = "observation"
@@ -111,11 +113,11 @@ if __name__ == "__main__":
             # Store output
             output_results.append({"line": s,
                                    "tasks": [{task['task_type']: task['status']} for task in o["task_blueprints"]],
+                                   "task_info": [{"task_type": task["task_type"], "status": task["status"], "id": task["id"]} for task in o["task_blueprints"]],
                                    "id": o["id"],
                                    "name": o["name"],
                                    "description": o["description"]}
                                   )
-
         # Specify selected lines
         task_selections = [False for result in output_results]
 
@@ -171,9 +173,19 @@ if __name__ == "__main__":
         if sum(selections) > 0:
             print(f"Selected {sum(selections)} blueprints")
                 
-        # Unpin
+        # Unpin selected blueprints
         if args.unpin:
             bpids = [result["id"] for result, selection in zip(output_results, selections) if selection]
             for bpid in bpids:
                 result = client.set_scheduling_unit_blueprint_pinning(bpid, False)
                 print(f"Unpinned blueprint ID {bpid}")
+
+        # Cancel pipelines of selected blueprints
+#        if args.cancel_pipeline:
+#            for selection, r in zip(selections, output_results):               # 
+#                if selection:
+#                    for task in r["task_info"]:
+#                        if task["task_type"] == "pipeline" and task["status"] == "error":
+#                            result = client.cancel_task_blueprint(task["id"])
+#                            print(f"Cancelling task blueprint ID {task['id']}")
+#                            print(result)

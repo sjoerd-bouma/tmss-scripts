@@ -40,7 +40,7 @@ if __name__ == "__main__":
                         default=64, type=int)
     parser.add_argument("-I", "--integration", help="Integration time [float, default: 1]",
                         default=1, type=float)
-    parser.add_argument("-r", "--rfistrategy", help="Pipeline RFI strategy to use (e.g. LBA or HBA) [str, default: chosen by antennafield]",
+    parser.add_argument("-r", "--rfistrategy", help="Pipeline RFI strategy to use [str, default: lofar-default]",
                         default=None, type=str)
     parser.add_argument("-m", "--missing_stations", help="Specify number of stations that can be missed [int, default: 25%% of all stations]",
                         default=None, type=int)
@@ -178,23 +178,9 @@ if __name__ == "__main__":
 
         # Specify RFI strategy
         if args.rfistrategy is None:
-            if "HBA" in args.antennafield:
-                strategy = "HBAdefault"
-            elif "LBA" in args.antennafield:
-                strategy = "LBAdefault"
-            else:
-                print("RFI flagging strategy undefined.")
-                print()
-                sys.exit()
+            strategy = "lofar-default"
         else:
-            if "HBA" in args.rfistrategy:
-                strategy = "HBAdefault"
-            elif "LBA" in args.rfistrategy:
-                strategy = "LBAdefault"
-            else:
-                print("RFI flagging strategy undefined.")
-                print()
-                sys.exit()
+            strategy = args.rfistrategy
         spec_doc['tasks']['Pipeline']['specifications_doc']['flag']['rfi_strategy'] = strategy
 
         # Show spec doc

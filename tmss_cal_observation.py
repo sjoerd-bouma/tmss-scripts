@@ -149,8 +149,6 @@ if __name__ == "__main__":
         if args.stations is not None:
             spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
             spec_doc['tasks']['Station Calibration Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
-            spec_doc['tasks']['BackToDefault Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
-            spec_doc['tasks']['BackToDefault Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
 
         # Filter/antenna field
         if args.antennafield is not None:

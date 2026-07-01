@@ -9,3 +9,4 @@ datetime
 argparse
 numpy
 astropy
+termcolor

@@ -30,8 +30,8 @@ if __name__ == "__main__":
                         default=60, type=int)
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
-    parser.add_argument("-L", "--stations", help="Stations to use [str (case insensitive), examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\", default: Dutch]",
-                        default="Dutch", type=str)
+    parser.add_argument("-L", "--stations", help="Stations to use [str (case insensitive), examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\", default: All]",
+                        default="All", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 345]",
                         default=345, type=int)
     parser.add_argument("-p", "--pointing", help="Override source pointing [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
@@ -42,7 +42,7 @@ if __name__ == "__main__":
                         default=1, type=float)
     parser.add_argument("-r", "--rfistrategy", help="Pipeline RFI strategy to use [str, default: lofar-default]",
                         default=None, type=str)
-    parser.add_argument("-m", "--missing_stations", help="Specify number of stations that can be missed [int, default: 25%% of all stations]",
+    parser.add_argument("-m", "--missing_stations", help="Specify number of stations that can be missed [int, default: 50%% of all stations]",
                         default=None, type=int)
     parser.add_argument("-M", "--description", help="Observation description [str, example \"Test observation\", default: None, will \"Imaging observation\"]",
                         default=None, type=str)
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     if args.missing_stations is not None:
         missing_stations = args.missing_stations
     else:
-        missing_stations = max(1, int(np.ceil(0.25 * len(stations))))
+        missing_stations = max(1, int(np.ceil(0.5 * len(stations))))
     station_groups = [
         {
             "stations": stations, 

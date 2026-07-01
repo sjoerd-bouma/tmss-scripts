@@ -30,8 +30,8 @@ if __name__ == "__main__":
                         default=60, type=int)
     parser.add_argument("-d", "--delay", help="Delay in scheduling (s) [int, default: 300]",
                         default=300, type=int)
-    parser.add_argument("-L", "--stations", help="Stations to use [str (case insensitive), examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\", default: Dutch]",
-                        default="Dutch", type=str)
+    parser.add_argument("-L", "--stations", help="Stations to use [str (case insensitive), examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\", default: All]",
+                        default="All", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 432]",
                         default=432, type=int)
     parser.add_argument("-p", "--pointings", help="Override source pointing (can be multiple) [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",

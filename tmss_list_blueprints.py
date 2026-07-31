@@ -50,8 +50,14 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-u", "--unpin", help="Unpin blueprint to run clean up task",
                         action="store_true")
-#    parser.add_argument("-c", "--cancel_pipeline", help="Cancel pipeline task",
-#                        action="store_true")
+    parser.add_argument("--cancel_pipeline", help="Cancel pipeline task",
+                        action="store_true")
+    parser.add_argument("--cancel_ingest", help="Cancel ingest task",
+                        action="store_true")
+    parser.add_argument("--obsolete_pipeline", help="Obsolete pipeline task",
+                        action="store_true")
+    parser.add_argument("--obsolete_ingest", help="Obsolete ingest task",
+                        action="store_true")
     args = parser.parse_args()
 
     subtask_type = "observation"
@@ -181,11 +187,39 @@ if __name__ == "__main__":
                 print(f"Unpinned blueprint ID {bpid}")
 
         # Cancel pipelines of selected blueprints
-#        if args.cancel_pipeline:
-#            for selection, r in zip(selections, output_results):               # 
-#                if selection:
-#                    for task in r["task_info"]:
-#                        if task["task_type"] == "pipeline" and task["status"] == "error":
-#                            result = client.cancel_task_blueprint(task["id"])
-#                            print(f"Cancelling task blueprint ID {task['id']}")
-#                            print(result)
+        if args.cancel_pipeline:
+            for selection, r in zip(selections, output_results):
+                if selection:
+                    for task in r["task_info"]:
+                        if task["task_type"] == "pipeline":
+                            result = client.cancel_task_blueprint(task["id"])
+                            print(f"Cancelling pipeline task blueprint ID {task['id']}")
+
+        # Cancel ingest of selected blueprints
+        if args.cancel_ingest:
+            for selection, r in zip(selections, output_results):
+                if selection:
+                    for task in r["task_info"]:
+                        if task["task_type"] == "ingest":
+                            result = client.cancel_task_blueprint(task["id"])
+                            print(f"Cancelling ingest task blueprint ID {task['id']}")
+
+        # Obsolete pipelines of selected blueprints
+        if args.obsolete_pipeline:
+            for selection, r in zip(selections, output_results):
+                if selection:
+                    for task in r["task_info"]:
+                        if task["task_type"] == "pipeline":
+                            result = client.mark_task_blueprint_as_obsolete(task["id"])
+                            print(f"Obsoleting pipeline task blueprint ID {task['id']}")
+
+        # Obsolete ingest of selected blueprints
+        if args.obsolete_ingest:
+            for selection, r in zip(selections, output_results):
+                if selection:
+                    for task in r["task_info"]:
+                        if task["task_type"] == "ingest":
+                            result = client.mark_task_blueprint_as_obsolete(task["id"])
+                            print(f"Obsoleting ingest task blueprint ID {task['id']}")
+
+                            

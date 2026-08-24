@@ -34,6 +34,8 @@ if __name__ == "__main__":
                         default="Core", type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 446]",
                         default=446, type=int)
+    parser.add_argument("-p", "--pointing", help="Override source pointing[str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
+                        default=None, type=str)
     parser.add_argument("-m", "--mode", help="Observing mode (I, IQUV or XXYY) [str, default: I]",
                         default="I", type=str)
     parser.add_argument("-D", "--downsamp", help="Downsampling factor for Stokes I observing [int, default: 16]",
@@ -50,6 +52,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
                         default=None, type=str)
+    parser.add_argument("--max_missing", help="Maximum number of stations allowed to be missing [int, default: all but 1]",
+                        default=None, type=int)
     parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
                         default=None, type=int)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
@@ -72,12 +76,21 @@ if __name__ == "__main__":
                 "rank": 1.00}
 
     # Get pointing
-    p = get_icrs_coordinates(source_name)
-    pointings = [{"target": source_name,
-                  "angle1": float(p.ra.rad),
-                  "angle2": float(p.dec.rad),
-                  "direction_type": "J2000"}]
-    tile_pointing = pointings[0]
+    if args.pointing is None:
+        p = get_icrs_coordinates(source_name)
+        pointing = {"target": source_name,
+                    "angle1": float(p.ra.rad),
+                    "angle2": float(p.dec.rad),
+                    "direction_type": "J2000"}
+    else:
+        parts = args.pointing.split(",")
+        pointing = {"target": parts[0],
+                    "angle1": float(parts[1]),
+                    "angle2": float(parts[2]),
+                    "direction_type": parts[3]}
+        src_spec["name"] = pointing["target"]
+    tile_pointing = pointing
+    digital_pointing = pointing
 
     # Get XST settings
     if args.xst is not None:
@@ -117,19 +130,18 @@ if __name__ == "__main__":
 
     # Station groups
     stations = get_imaging_station_selection(args.stations)
-    station_groups = [{"stations": [item for item in stations],
-                       "max_nr_missing": len(stations) - 1}]
+    if args.max_missing is None:
+        station_groups = [{"stations": [item for item in stations],
+                           "max_nr_missing": len(stations) - 1}]
+    else:
+        station_groups = [{"stations": [item for item in stations],
+                           "max_nr_missing": args.max_missing}]
 
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()
 
-    # Check if total number of subbands fits
-    if len(subband_list) * len(pointings) > 488:
-        print("Too many subbands per pointing specified. Exiting.")
-        sys.exit()
-        
     # Subbands per file
     if args.subbands_per_file is not None:
         subbands_per_file = args.subbands_per_file
@@ -219,8 +231,10 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
+
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = digital_pointing
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['coherent']['settings'] = mode
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['coherent']['SAPs'][0]['subbands']['list'] = subband_list

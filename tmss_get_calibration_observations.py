@@ -12,9 +12,9 @@ from login_settings import get_settings, get_tmss_session
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="List tasks")
-    parser.add_argument("-s", "--tstart", help="Start time (isot) [str, default: now - 1 day]",
+    parser.add_argument("-s", "--tstart", help="Start time (isot) [str, default: now - 25h]",
                         default=None, type=str)
-    parser.add_argument("-e", "--tend", help="Start time (isot) [str, default: now]",
+    parser.add_argument("-e", "--tend", help="Start time (isot) [str, default: now - 1h]",
                         default=None, type=str)
     parser.add_argument("-o", "--output", help="Output to file (json) instead of screen) [str, default: None]",
                         default=None, type=str)
@@ -24,8 +24,8 @@ if __name__ == "__main__":
     
     # Start time
     if args.tstart is None and args.tend is None:
-        tstart = (datetime.now(UTC) + timedelta(days=-1)).strftime("%Y-%m-%dT%H:%M:%S").replace(":", "%3A")
-        tend = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S").replace(":", "%3A")
+        tstart = (datetime.now(UTC) + timedelta(hours=-25)).strftime("%Y-%m-%dT%H:%M:%S").replace(":", "%3A")
+        tend = (datetime.now(UTC) + timedelta(hours=-1)).strftime("%Y-%m-%dT%H:%M:%S").replace(":", "%3A")
     else:
         tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S").replace(":", "%3A")
         tend = datetime.strptime(args.tend, "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S").replace(":", "%3A")

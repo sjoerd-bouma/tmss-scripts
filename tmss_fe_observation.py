@@ -10,6 +10,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from print_dict import print_dict
+from tiled_rings import ring_coordinates
 from station_selection import get_imaging_station_selection
 from login_settings import get_settings, get_tmss_session
 
@@ -36,6 +37,8 @@ if __name__ == "__main__":
                         default=432, type=int)
     parser.add_argument("-p", "--pointings", help="Override source pointing (can be multiple) [str, example: \"Zenith,0.0,1.5707963,AZELGEO\", default: None]",
                         default=None, type=str, action="append")
+    parser.add_argument("-r", "--rings", help="Generated hexagonal rings of sub-array pointings around the source pointing [str, (nring,rring (deg)), example: \"5,0.5\", default: None]",
+                        default=None, type=str)
     parser.add_argument("-m", "--mode", help="Observing mode (I, IQUV or XXYY) [str, default: I]",
                         default="I", type=str)
     parser.add_argument("-D", "--downsamp", help="Downsampling factor for Stokes I observing [int, default: 16]",
@@ -74,12 +77,21 @@ if __name__ == "__main__":
                 "rank": 1.00}
 
     # Get pointing
-    if args.pointings is None:
+    if args.pointings is None and args.rings is None:
         p = get_icrs_coordinates(source_name)
         pointings = [{"target": source_name,
-                      "angle1": p.ra.rad,
-                      "angle2": p.dec.rad,
+                      "angle1": float(p.ra.rad),
+                      "angle2": float(p.dec.rad),
                       "direction_type": "J2000"}]
+        tile_pointing = pointings[0]
+    elif args.pointings is None and args.rings is not None:
+        nring, rring = int(args.rings.split(",")[0]), float(args.rings.split(",")[1])
+        pref = get_icrs_coordinates(source_name)
+        psaps = ring_coordinates(pref, nring, rring * u.deg)
+        pointings = [{"target": source_name,
+                      "angle1": float(p.ra.rad),
+                      "angle2": float(p.dec.rad),
+                      "direction_type": "J2000"} for i, p in enumerate(psaps)]
         tile_pointing = pointings[0]
     else:
         pointings = []
@@ -138,6 +150,11 @@ if __name__ == "__main__":
     station_groups = [{"stations": [item for item in stations],
                        "max_nr_missing": len(stations) - 1}]
 
+    # Check if the number of unique sub-array pointings is too large
+    if len(stations) * len(pointings) > 3000:
+        print(f"This setup will generate too many sub-array pointings ({len(stations) * len(pointings)}) for too many stations. Exiting.")
+        sys.exit()
+    
     # Check if filter is compatible with antenna set
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")

@@ -10,7 +10,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from print_dict import print_dict
-from station_selection import get_imaging_station_selection
+from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
@@ -18,12 +18,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Schedule a beamformed observation.")
     parser.add_argument("-s", "--source", help="Source to observe [str, default: PSR B0329+54] (uses Simbad name resolver)",
                         default="PSR B0329+54", type=str)
-#    parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
-#                        default="HBA_DUAL", type=str)
-#    parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
-#                        default="HBA_110_190", type=str)
-#    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '144*16', '128,256,384') [str, default: 51..450]",
-#                        default="51..450", type=str)
+    parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
+                        default="HBA_DUAL", type=str)
+    parser.add_argument("-f", "--filter", help="Filter to select [str, default: HBA_110_190]",
+                        default="HBA_110_190", type=str)
+    parser.add_argument("-S", "--subband", help="Subbands to select (e.g. '201..400', '144*16', '128,256,384') [str, default: 51..450]",
+                        default="51..450", type=str)
     parser.add_argument("-t", "--tstart", help="Start time (isot) [str, default: now]",
                         default=None, type=str)
     parser.add_argument("-l", "--length", help="Observation length (s) [int, default: 60]",
@@ -81,19 +81,19 @@ if __name__ == "__main__":
 #                    "subbands_step": 0,
 #                    "integration_interval": 1.0}
         
-#    # Decode subbands
-#    if "," in args.subband:
-#        subband_list = [int(part) for part in args.subband.split(",")]
-#    elif ".." in args.subband:
-#        smin = int(args.subband.split("..")[0])
-#        smax = int(args.subband.split("..")[-1])
-#        subband_list = list(range(smin, smax + 1))
-#    elif "*" in args.subband:
-#        subband = int(args.subband.split("*")[0])
-#        nsubband = int(args.subband.split("*")[1])
-#        subband_list = [subband] * nsubband
-#    else:
-#        subband_list = [int(args.subband)]
+    # Decode subbands
+    if "," in args.subband:
+        subband_list = [int(part) for part in args.subband.split(",")]
+    elif ".." in args.subband:
+        smin = int(args.subband.split("..")[0])
+        smax = int(args.subband.split("..")[-1])
+        subband_list = list(range(smin, smax + 1))
+    elif "*" in args.subband:
+        subband = int(args.subband.split("*")[0])
+        nsubband = int(args.subband.split("*")[1])
+        subband_list = [subband] * nsubband
+    else:
+        subband_list = [int(args.subband)]
 
     # Start time
     if args.tstart is None:
@@ -105,14 +105,14 @@ if __name__ == "__main__":
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
 
     # Station groups
-    stations = get_imaging_station_selection(args.stations)
+    stations = get_station_selection(args.stations)
     station_groups = [{"stations": [item for item in stations],
                        "max_nr_missing": len(stations) - 1}]
 
-#    # Check if filter is compatible with antenna set
-#    if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
-#        print("Wrong combination of antennafield and filter selection. Exiting.")
-#        sys.exit()
+    # Check if filter is compatible with antenna set
+    if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
+        print("Wrong combination of antennafield and filter selection. Exiting.")
+        sys.exit()
 
     # Read credentials
     settings = get_settings()
@@ -146,19 +146,14 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['tile_beam'] = pointing
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['digital_pointing'] = pointing
-##        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
-##        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['antenna_set'] = args.antennafield
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['filter'] = args.filter
 
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
-##        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
-##        spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['coherent']['SAPs'][0]['subbands']['list'] = subband_list
+        spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
+        #spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['coherent']['SAPs'][0]['subbands']['list'] = subband_list
         
-##        if args.cluster is not None:
-##            spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['storage_cluster'] = args.cluster
-##        if xst_spec["enabled"]:
-##            spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
-
         # Show spec doc
         if args.verbose:
             print_dict(spec_doc, prefix="spec_doc")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-def get_imaging_station_selection(stations):
+def get_station_selection(stations):
     # Specific station selections
     st_stations = ["CS002", "CS003", "CS004", "CS005", "CS006", "CS007"]
     cs_stations = ["CS001", "CS002", "CS003", "CS004", "CS005", "CS006",

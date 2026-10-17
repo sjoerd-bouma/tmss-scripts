@@ -10,7 +10,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from print_dict import print_dict
-from station_selection import get_imaging_station_selection
+from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
     
     # Stations
-    stations = get_imaging_station_selection(args.stations)
+    stations = get_station_selection(args.stations)
     if args.missing_stations is not None:
         missing_stations = args.missing_stations
     else:

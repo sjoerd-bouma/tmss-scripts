@@ -10,13 +10,14 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from print_dict import print_dict
+from select_source import select_source
 from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Schedule a beamformed observation.")
-    parser.add_argument("-s", "--source", help="Source to observe [str, default: PSR B0329+54] (uses Simbad name resolver)",
+    parser.add_argument("-s", "--source", help="Source to observe [str, default: PSR B0329+54 (\"auto\" auto-select a source)] (uses Simbad name resolver)",
                         default="PSR B0329+54", type=str)
     parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
                         default="HBA_DUAL", type=str)
@@ -63,21 +64,26 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
                         action="store_true")
     args = parser.parse_args()
-
-    # Settings
-    source_name = args.source
-    run_spec = {"strategy_name": "BF generic",
-                "description": args.description if args.description is not None else "Beamformed observation"}
-    src_spec = {"name": source_name,
-                "elev_min_deg": 0,
-                "lst_min_s": -43200,
-                "lst_max_s": 43200,
-                "priority_queue": "A",
-                "rank": 1.00}
+ 
+    # Start time
+    if args.tstart is None:
+        # Round to start of minute
+        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
+        tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
+    else:
+        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
+        tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
 
     # Get pointing
+    source_name = args.source
     if args.pointing is None:
-        p = get_icrs_coordinates(source_name)
+        if source_name == "auto":
+            source_name, p = select_source(tstart, "bf", args.filter[:3])
+        else:
+            p = get_icrs_coordinates(source_name)
+        if p == None:
+            print("Source coordinates not found. Exiting.")
+            sys.exit()     
         pointing = {"target": source_name,
                     "angle1": float(p.ra.rad),
                     "angle2": float(p.dec.rad),
@@ -91,6 +97,16 @@ if __name__ == "__main__":
         src_spec["name"] = pointing["target"]
     tile_pointing = pointing
     digital_pointing = pointing
+
+    # Settings
+    run_spec = {"strategy_name": "BF generic",
+                "description": args.description if args.description is not None else "Beamformed observation"}
+    src_spec = {"name": source_name,
+                "elev_min_deg": 0,
+                "lst_min_s": -43200,
+                "lst_max_s": 43200,
+                "priority_queue": "A",
+                "rank": 1.00}
 
     # Get XST settings
     if args.xst is not None:
@@ -118,15 +134,6 @@ if __name__ == "__main__":
         subband_list = [subband] * nsubband
     else:
         subband_list = [int(args.subband)]
-
-    # Start time
-    if args.tstart is None:
-        # Round to start of minute
-        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
-        tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
-    else:
-        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
-        tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
 
     # Station groups
     stations = get_station_selection(args.stations)

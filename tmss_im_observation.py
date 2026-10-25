@@ -10,13 +10,14 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from print_dict import print_dict
+from select_source import select_source
 from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
     # Read command line arguments
     parser = argparse.ArgumentParser(description="Schedule an imaging observation.")
-    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A] (uses Simbad name resolver)",
+    parser.add_argument("-s", "--source", help="Source to observe [str, default: Cas A (\"auto\" auto-select a source)] (uses Simbad name resolver)",
                         default="Cas A", type=str)
     parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
                         default="HBA_DUAL", type=str)
@@ -58,25 +59,29 @@ if __name__ == "__main__":
                         action="store_true")
     args = parser.parse_args()
 
-    # Settings
-    source_name = args.source
-    run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing",
-                "description": args.description if args.description is not None else "Imaging observation"}
-    src_spec = {"name": source_name,
-                "elev_min_deg": 0,
-                "lst_min_s": -43200,
-                "lst_max_s": 43200,
-                "priority_queue": "A",
-                "rank": 1.00}
-
+    # Start time
+    if args.tstart is None:
+        # Round to start of minute
+        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
+        tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
+    else:
+        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
+        tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
+      
     # Get pointing
+    source_name = args.source
     if args.pointing is None:
-        p = get_icrs_coordinates(source_name)
+        if source_name == "auto":
+            source_name, p = select_source(tstart, "im", args.filter[:3])
+        else:
+            p = get_icrs_coordinates(source_name)
+        if p == None:
+            print("Source coordinates not found. Exiting.")
+            sys.exit()     
         pointing = {"target": source_name,
-                    "angle1": p.ra.rad,
-                    "angle2": p.dec.rad,
+                    "angle1": float(p.ra.rad),
+                    "angle2": float(p.dec.rad),
                     "direction_type": "J2000"}
-
     else:
         parts = args.pointing.split(",")
         pointing = {"target": parts[0],
@@ -86,6 +91,16 @@ if __name__ == "__main__":
         src_spec["name"] = parts[0]
         source_name = parts[0]
 
+    # Settings
+    run_spec = {"strategy_name": "Simple Imaging Observation with preprocessing",
+                "description": args.description if args.description is not None else "Imaging observation"}
+    src_spec = {"name": source_name,
+                "elev_min_deg": 0,
+                "lst_min_s": -43200,
+                "lst_max_s": 43200,
+                "priority_queue": "A",
+                "rank": 1.00}
+        
     # Get XST settings
     if args.xst is not None:
         parts = args.xst.split(",")
@@ -108,16 +123,7 @@ if __name__ == "__main__":
         subband_list = list(range(smin, smax + 1))
     else:
         subband_list = [int(args.subband)]
-        
-    # Start time
-    if args.tstart is None:
-        # Round to start of minute
-        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
-        tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
-    else:
-        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
-        tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
-    
+          
     # Stations
     stations = get_station_selection(args.stations)
     if args.missing_stations is not None:

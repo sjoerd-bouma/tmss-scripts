@@ -11,6 +11,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, get_icrs_coordinates
 
 from print_dict import print_dict
+from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
@@ -26,7 +27,7 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-w", "--window", help="Time between window length (hours) [float, default: 24]",
                         default=24.0, type=float)
-    parser.add_argument("-L", "--stations", help="Station to use [str, default: strategy default, can be multiple, e.g. \"CS001,CS002,CS003\"]",
+    parser.add_argument("-L", "--stations", help="Station to use [str (case insensitive), default: strategy default, can be multiple, e.g. \"CS001,CS002,CS003\", examples \"CS001,CS032,RS307\", \"Superterp\", \"ST\", \"Core\", \"CS\", \"Dutch\", \"RS\", \"Remote\", \"INT\", \"International\", \"All\", \"Full\"]",
                         default=None, type=str)
     parser.add_argument("-i", "--scheduling_set_id", help="Scheduling set ID [int, default: 395]",
                         default=395, type=int)
@@ -87,14 +88,15 @@ if __name__ == "__main__":
 
     # Stations
     if args.stations is not None:
-        stations = args.stations.split(",")
+        stations = get_station_selection(args.stations)
+        missing_stations = max(1, len(stations) - 1)
         station_groups = [
             {
-                "stations": stations,
-                "max_nr_missing": len(stations) - 1
+                "stations": stations, 
+                "max_nr_missing": missing_stations
             }
-        ] 
-
+        ]
+        
     # Observation duration
     #if args.xst_subbands is not None and args.xst_integration_time is not None and args.xst_num_cycles is not None and args.xst_subband_step is not None:
     #    duration = int(ceil(args.xst_integration_time * 512 * args.xst_num_cycles / args.xst_subband_step))

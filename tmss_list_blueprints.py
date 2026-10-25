@@ -50,13 +50,19 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-u", "--unpin", help="Unpin blueprint to run clean up task",
                         action="store_true")
-    parser.add_argument("--cancel_pipeline", help="Cancel pipeline task (if not in finished state)",
+    parser.add_argument("-1", "--cancel_observation", help="Cancel observation task (if not in finished state)",
                         action="store_true")
-    parser.add_argument("--cancel_ingest", help="Cancel ingest task (if not in finished state)",
+    parser.add_argument("-2", "--cancel_pipeline", help="Cancel pipeline task (if not in finished state)",
                         action="store_true")
-    parser.add_argument("--obsolete_pipeline", help="Obsolete pipeline task (if not in finished state)",
+    parser.add_argument("-3", "--cancel_ingest", help="Cancel ingest task (if not in finished state)",
                         action="store_true")
-    parser.add_argument("--obsolete_ingest", help="Obsolete ingest task (if not in finished state)",
+    parser.add_argument("-4", "--obsolete_observation", help="Obsolete observation task (if not in finished state)",
+                        action="store_true")
+    parser.add_argument("-5", "--obsolete_pipeline", help="Obsolete pipeline task (if not in finished state)",
+                        action="store_true")
+    parser.add_argument("-6", "--obsolete_ingest", help="Obsolete ingest task (if not in finished state)",
+                        action="store_true")
+    parser.add_argument("-7", "--add_cleanup", help="Add cleanup task",
                         action="store_true")
     args = parser.parse_args()
 
@@ -86,8 +92,8 @@ if __name__ == "__main__":
         results = client.get_url_as_json_object(full_url=url)
 
         # Color definition
-        states = ["finished", "error", "schedulable", "unschedulable", "observed", "cancelled", "started", "scheduled", "queued", "defined", "on hold"]
-        statecolors = ["green", "red", "blue", (135, 206, 235), "green", (255, 165, 0), "yellow", (0, 0, 100), "cyan", "magenta", "light_red"]
+        states = ["finished", "error", "schedulable", "unschedulable", "observed", "started", "scheduled", "queued", "cancelled", "defined", "on hold"]
+        statecolors = ["green", "red", "blue", (135, 206, 235), "green", (255, 165, 0), (0, 0, 100), "cyan", "yellow", "magenta", "light_red"]
         
         # Loop over results to generate output dictionary
         output_results = []
@@ -166,7 +172,7 @@ if __name__ == "__main__":
         if args.description is not None:
             lists.append(description_selections)
         selections = [all(values) for values in zip(*lists)]
-                    
+
         # Print results to screen
         for selection, result in zip(selections, output_results):
             line = result["line"]
@@ -179,12 +185,28 @@ if __name__ == "__main__":
         if sum(selections) > 0:
             print(f"Selected {sum(selections)} blueprints")
                 
+        # Add cleanup task of selected blueprints
+        if args.add_cleanup:
+            bpids = [result["id"] for result, selection in zip(output_results, selections) if selection]
+            for bpid in bpids:
+                result = client.create_cleanuptask_for_scheduling_unit_blueprint(bpid)
+                print(f"Added cleanup task to blueprint ID {bpid}")
+
         # Unpin selected blueprints
         if args.unpin:
             bpids = [result["id"] for result, selection in zip(output_results, selections) if selection]
             for bpid in bpids:
                 result = client.set_scheduling_unit_blueprint_pinning(bpid, False)
                 print(f"Unpinned blueprint ID {bpid}")
+
+        # Cancel observations of selected blueprints
+        if args.cancel_observation:
+            for selection, r in zip(selections, output_results):
+                if selection:
+                    for task in r["task_info"]:
+                        if task["task_type"] == "observation" and task["status"] != "finished":
+                            result = client.cancel_task_blueprint(task["id"])
+                            print(f"Cancelling observation task blueprint ID {task['id']}")
 
         # Cancel pipelines of selected blueprints
         if args.cancel_pipeline:
@@ -194,7 +216,7 @@ if __name__ == "__main__":
                         if task["task_type"] == "pipeline" and task["status"] != "finished":
                             result = client.cancel_task_blueprint(task["id"])
                             print(f"Cancelling pipeline task blueprint ID {task['id']}")
-
+                            
         # Cancel ingest of selected blueprints
         if args.cancel_ingest:
             for selection, r in zip(selections, output_results):
@@ -203,6 +225,15 @@ if __name__ == "__main__":
                         if task["task_type"] == "ingest" and task["status"] != "finished":
                             result = client.cancel_task_blueprint(task["id"])
                             print(f"Cancelling ingest task blueprint ID {task['id']}")
+
+        # Obsolete observations of selected blueprints
+        if args.obsolete_observation:
+            for selection, r in zip(selections, output_results):
+                if selection:
+                    for task in r["task_info"]:
+                        if task["task_type"] == "observation" and task["status"] != "finished":
+                            result = client.mark_task_blueprint_as_obsolete(task["id"])
+                            print(f"Obsoleting observation task blueprint ID {task['id']}")
 
         # Obsolete pipelines of selected blueprints
         if args.obsolete_pipeline:
@@ -222,4 +253,3 @@ if __name__ == "__main__":
                             result = client.mark_task_blueprint_as_obsolete(task["id"])
                             print(f"Obsoleting ingest task blueprint ID {task['id']}")
 
-                            

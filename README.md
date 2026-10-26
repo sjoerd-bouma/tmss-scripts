@@ -7,7 +7,7 @@ Observation scripts:
 - `tmss_im_observation.py` starts an interferometric observation
 - `tmss_bf_observation.py` starts a beamformed observation
 - `tmss_psr_observation.py` starts a beamformed pulsar observation (with pipeline)
-- `tmss_cal_observation.py` starts a station calibraiton observation
+- `tmss_cal_observation.py` starts a station calibration observation
 
 Query scripts:
 - `tmss_list_scheduling_sets.py` lists all scheduling scheduling sets

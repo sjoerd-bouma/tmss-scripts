@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 import os
 import sys
-import yaml
+import json
 import argparse
 from datetime import datetime, timedelta, UTC
 
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord, get_icrs_coordinates
+from astropy.coordinates import SkyCoord
 
 from print_dict import print_dict
-from select_source import select_source
+from print_dict import replace_matching_values
+from select_source import select_source, local_get_icrs_coordinates
 from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
@@ -49,8 +50,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
-    parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
-                        default=None, type=str)
+    parser.add_argument("-C", "--constraints", help="Apply dynamic constraints from JSON file [file, default: none]",
+                        default=None, metavar="FILE")
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
@@ -67,6 +68,8 @@ if __name__ == "__main__":
     else:
         tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
+    tend = datetime.strptime(tstart, "%Y-%m-%dT%H:%M:%S") + timedelta(days=1)
+    tend = tend.strftime("%Y-%m-%dT%H:%M:%S")        
       
     # Get pointing
     source_name = args.source
@@ -74,7 +77,7 @@ if __name__ == "__main__":
         if source_name == "auto":
             source_name, p = select_source(tstart, "im", args.filter[:3])
         else:
-            p = get_icrs_coordinates(source_name)
+            p = local_get_icrs_coordinates(source_name)
         if p == None:
             print("Source coordinates not found. Exiting.")
             sys.exit()     
@@ -141,7 +144,19 @@ if __name__ == "__main__":
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()     
-            
+
+    # Constraints
+    if args.constraints is not None:
+        try:
+            with open(args.constraints, "r") as fp:
+                constraints = json.load(fp)
+        except json.decoder.JSONDecodeError as e:
+            print(f"JSON decoder error {e}. Exiting.")
+            sys.exit()     
+        except FileNotFoundError:
+            print("JSON file with constraints not found. Exiting.")
+            sys.exit()     
+
     # Read credentials
     settings = get_settings()
 
@@ -152,7 +167,7 @@ if __name__ == "__main__":
     with get_tmss_session(settings) as client:
         print("Opened TMSS connection")
         
-        # Get the latest satellite monitoring template
+        # Get the template
         template = client.get_scheduling_unit_observing_strategy_template(run_spec['strategy_name'])
         print(f"Using strategy template {template['url']}")
         
@@ -161,12 +176,18 @@ if __name__ == "__main__":
 
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
-        
-        spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
-        spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
-        spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
-        spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
 
+        # Apply constraints
+        if args.constraints is None:
+            spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
+            spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
+            spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
+        else:
+            replace_matching_values(spec_doc, constraints)
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
+            spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]
+        
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
@@ -177,8 +198,6 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['integration_time'] = args.integration
         spec_doc['tasks']['Observation']['specifications_doc']['correlator']['channels_per_subband'] = args.channels
-        if args.cluster is not None:
-            spec_doc['tasks']['Observation']['specifications_doc']['correlator']['storage_cluster'] = args.cluster
         if xst_spec["enabled"]:
             spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 

@@ -1,0 +1,25 @@
+{
+    "scheduling_constraints_doc": {
+	"sky": {
+	    "min_distance": {
+		"target": {
+		    "sun": 0.523598,
+		    "moon": 0,
+		    "jupiter": 0
+		}
+	    },
+	    "min_elevation": {
+		"target": 0.523598
+	    },
+	    "transit_offset": {
+		"to": 7200,
+		"from": -7200
+	    }
+	},
+	"daily": {
+	    "require_day": false,
+	    "require_night": false,
+	    "avoid_twilight": false
+	}
+    }
+}

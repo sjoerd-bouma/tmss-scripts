@@ -7,10 +7,11 @@ from datetime import datetime, timedelta, UTC
 
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord, get_icrs_coordinates
+from astropy.coordinates import SkyCoord
 
 from print_dict import print_dict
-from select_source import select_source
+from print_dict import replace_matching_values
+from select_source import select_source, local_get_icrs_coordinates
 from tiled_rings import ring_coordinates
 from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
@@ -54,8 +55,8 @@ if __name__ == "__main__":
                         default=None, type=str)
     parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
                         default=None, type=str)
-    parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
-                        default=None, type=str)
+    parser.add_argument("-C", "--constraints", help="Apply dynamic constraints from JSON file [file, default: none]",
+                        default=None, metavar="FILE")
     parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
                         default=None, type=int)
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         if source_name == "auto":
             source_name, p = select_source(tstart, "bf", args.filter[:3])
         else:
-            p = get_icrs_coordinates(source_name)
+            p = local_get_icrs_coordinates(source_name)
         if p == None:
             print("Source coordinates not found. Exiting.")
             sys.exit()     
@@ -227,6 +228,17 @@ if __name__ == "__main__":
                  "time_integration_factor": args.downsamp
                  }
         
+    # Constraints
+    if args.constraints is not None:
+        try:
+            with open(args.constraints, "r") as fp:
+                constraints = json.load(fp)
+        except json.decoder.JSONDecodeError as e:
+            print(f"JSON decoder error {e}. Exiting.")
+            sys.exit()     
+        except FileNotFoundError:
+            print("JSON file with constraints not found. Exiting.")
+            sys.exit()     
             
     # Read credentials
     settings = get_settings()
@@ -248,13 +260,20 @@ if __name__ == "__main__":
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
         
-        spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
-        spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
-        spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
-        spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
-        for source_constraint in ['sun', 'moon', 'jupiter']:
-            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
-            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0            
+        # Apply constraints
+        if args.constraints is None:
+            spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
+            spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
+            spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
+            for source_constraint in ['sun', 'moon', 'jupiter']:
+                spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
+                spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0
+        else:
+            replace_matching_values(spec_doc, constraints)
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
+            spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]
+ 
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
@@ -277,8 +296,6 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['flys eye']['settings'] = mode
-        if args.cluster is not None:
-            spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['storage_cluster'] = args.cluster
         if xst_spec["enabled"]:
             spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
 

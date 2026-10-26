@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 import os
 import sys
-import yaml
+import json
 import argparse
 from datetime import datetime, timedelta, UTC
 
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord, get_icrs_coordinates
+from astropy.coordinates import SkyCoord
 
 from print_dict import print_dict
+from print_dict import replace_matching_values
+from select_source import select_source, local_get_icrs_coordinates
 from station_selection import get_station_selection
 from login_settings import get_settings, get_tmss_session
 
 if __name__ == "__main__":
     # Read command line arguments
-    parser = argparse.ArgumentParser(description="Schedule a beamformed observation.")
-    parser.add_argument("-s", "--source", help="Source to observe [str, default: PSR B0329+54] (uses Simbad name resolver)",
+    parser = argparse.ArgumentParser(description="Schedule a pulsar observation.")
+    parser.add_argument("-s", "--source", help="Source to observe [str, default: PSR B0329+54 (\"auto\" auto-select a source)] (uses Simbad name resolver)",
                         default="PSR B0329+54", type=str)
     parser.add_argument("-a", "--antennafield", help="Antenna field to select [str, default: HBA_DUAL]",
                         default="HBA_DUAL", type=str)
@@ -38,20 +40,40 @@ if __name__ == "__main__":
                         default=None, type=str)
 #    parser.add_argument("-X", "--xst", help="XST settings (subband start, subband step, integration time) [str, example: \"194,0,1.0\", default: None]",
 #                        default=None, type=str)
-#    parser.add_argument("-C", "--cluster", help="Override cluster to record to (CEP4 or CEP6) [str, default: strategy default]",
-#                        default=None, type=str)
-    parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
-                        default=None, type=int)
+    parser.add_argument("-C", "--constraints", help="Apply dynamic constraints from JSON file [file, default: none]",
+                        default=None, metavar="FILE")
     parser.add_argument("-v", "--verbose", help="Provide detailed output",
                         action="store_true")
+    parser.add_argument("-V", "--strategy_version", help="Specify strategy version to use [int, default: None]",
+                        default=None, type=int)
     parser.add_argument("-u", "--upload", help="Upload specification document and create scheduling unit draft",
                         action="store_true")
     parser.add_argument("-b", "--blueprint", help="Blueprint uploaded scheduling unit draft",
                         action="store_true")
     args = parser.parse_args()
 
-    # Settings
+    # Start time
+    if args.tstart is None:
+        # Round to start of minute
+        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
+        tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
+    else:
+        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
+        tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
+    tend = datetime.strptime(tstart, "%Y-%m-%dT%H:%M:%S") + timedelta(days=1)
+    tend = tend.strftime("%Y-%m-%dT%H:%M:%S")        
+   
+    # Get pointing
     source_name = args.source
+    if source_name == "auto":
+        source_name, p = select_source(tstart, "bf", args.filter[:3])
+    else:
+        p = local_get_icrs_coordinates(source_name)
+    pointing = {"target": source_name,
+                "angle1": float(p.ra.rad),
+                "angle2": float(p.dec.rad),
+                "direction_type": "J2000"}
+    # Settings
     run_spec = {"strategy_name": "BF Pulsar Folding",
                 "description": args.description if args.description is not None else "Pulsar folding observation"}
     src_spec = {"name": source_name,
@@ -60,13 +82,6 @@ if __name__ == "__main__":
                 "lst_max_s": 43200,
                 "priority_queue": "A",
                 "rank": 1.00}
-
-    # Get pointing
-    p = get_icrs_coordinates(source_name)
-    pointing = {"target": source_name,
-                "angle1": float(p.ra.rad),
-                "angle2": float(p.dec.rad),
-                "direction_type": "J2000"}
 
 #    # Get XST settings
 #    if args.xst is not None:
@@ -95,15 +110,6 @@ if __name__ == "__main__":
     else:
         subband_list = [int(args.subband)]
 
-    # Start time
-    if args.tstart is None:
-        # Round to start of minute
-        tstart = datetime.now(UTC) + timedelta(seconds=args.delay)
-        tstart = tstart.strftime("%Y-%m-%dT%H:%M:00")
-    else:
-        tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
-        tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
-
     # Station groups
     stations = get_station_selection(args.stations)
     station_groups = [{"stations": [item for item in stations],
@@ -113,6 +119,18 @@ if __name__ == "__main__":
     if ("LBA" in args.filter and "HBA" in args.antennafield) or ("HBA" in args.filter and "LBA" in args.antennafield):
         print("Wrong combination of antennafield and filter selection. Exiting.")
         sys.exit()
+
+    # Constraints
+    if args.constraints is not None:
+        try:
+            with open(args.constraints, "r") as fp:
+                constraints = json.load(fp)
+        except json.decoder.JSONDecodeError as e:
+            print(f"JSON decoder error {e}. Exiting.")
+            sys.exit()     
+        except FileNotFoundError:
+            print("JSON file with constraints not found. Exiting.")
+            sys.exit()     
 
     # Read credentials
     settings = get_settings()
@@ -133,14 +151,20 @@ if __name__ == "__main__":
 
         # Copy original specification document
         spec_doc = original_spec_doc.copy()
-        
-        spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
-        spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
-        spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
-        spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
-        for source_constraint in ['sun', 'moon', 'jupiter']:
-            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
-            spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0            
+
+        # Apply constraints
+        if not constraints:
+            spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
+            spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
+            spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['to'] = src_spec['lst_max_s']
+            for source_constraint in ['sun', 'moon', 'jupiter']:
+                spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
+                spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0            
+        elif constraints:
+            replace_matching_values(spec_doc, constraints)
+            spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
+            spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]
 
         spec_doc['tasks']['Observation']['specifications_doc']['duration'] = args.length
         spec_doc['tasks']['Observation']['short_description'] = src_spec["name"]
@@ -153,7 +177,9 @@ if __name__ == "__main__":
         spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['station_groups'] = station_groups
         spec_doc['tasks']['Observation']['specifications_doc']['station_configuration']['SAPs'][0]['subbands'] = subband_list
         #spec_doc['tasks']['Observation']['specifications_doc']['beamformer']['pipelines'][0]['coherent']['SAPs'][0]['subbands']['list'] = subband_list
-        
+#        if xst_spec["enabled"]:
+#            spec_doc['tasks']['Observation']['specifications_doc']['QA']['XST'] = xst_spec
+
         # Show spec doc
         if args.verbose:
             print_dict(spec_doc, prefix="spec_doc")

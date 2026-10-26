@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import yaml
 import json
 import argparse
 from datetime import datetime, timedelta, UTC

@@ -75,6 +75,8 @@ if __name__ == "__main__":
     else:
         tstart = datetime.strptime(args.tstart, "%Y-%m-%dT%H:%M:%S")
         tstart = tstart.strftime("%Y-%m-%dT%H:%M:%S")
+    tend = datetime.strptime(tstart, "%Y-%m-%dT%H:%M:%S") + timedelta(days=1)
+    tend = tend.strftime("%Y-%m-%dT%H:%M:%S")        
 
     # Get pointing
     source_name = args.source

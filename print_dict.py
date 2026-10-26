@@ -11,3 +11,13 @@ def print_dict(v, prefix=''):
             print_dict(v2, p2)
     else:
         print('{} = {}'.format(prefix, repr(v)))
+
+def replace_matching_values(output_dict, input_dict):
+    for key, value in input_dict.items():
+        if key not in output_dict:
+            continue
+
+        if isinstance(value, dict) and isinstance(output_dict[key], dict):
+            replace_matching_values(output_dict[key], value)
+        else:
+            output_dict[key] = value

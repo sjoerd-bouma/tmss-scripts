@@ -153,7 +153,7 @@ if __name__ == "__main__":
         spec_doc = original_spec_doc.copy()
 
         # Apply constraints
-        if not constraints:
+        if args.constraints is None:
             spec_doc['scheduling_constraints_doc']['time']['at'] = f'{tstart}'
             spec_doc['scheduling_constraints_doc']['scheduler'] = 'fixed_time'
             spec_doc['scheduling_constraints_doc']['sky']['transit_offset']['from'] = src_spec['lst_min_s']
@@ -161,7 +161,7 @@ if __name__ == "__main__":
             for source_constraint in ['sun', 'moon', 'jupiter']:
                 spec_doc['scheduling_constraints_doc']['sky']['min_distance']['target'][source_constraint] = 0
                 spec_doc['scheduling_constraints_doc']['sky']['min_distance']['calibrator'][source_constraint] = 0            
-        elif constraints:
+        else:
             replace_matching_values(spec_doc, constraints)
             spec_doc['scheduling_constraints_doc']['scheduler'] = 'dynamic'
             spec_doc['scheduling_constraints_doc']['time']['between'] = [{"from": tstart, "to": tend}]

@@ -98,7 +98,7 @@ if __name__ == "__main__":
         if source_name == "auto":
             source_name, pref = select_source(tstart, "bf", args.filter[:3])
         else:
-            pref = get_icrs_coordinates(source_name)
+            pref = local_get_icrs_coordinates(source_name)
         if pref == None:
             print("Source coordinates not found. Exiting.")
             sys.exit()     

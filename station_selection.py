@@ -31,6 +31,6 @@ def get_station_selection(stations):
 
     # Specific selection
     input_stations = stations.split(",")
-    stations = [station for station in input_stations if station in all_stations]
+    stations = [station.upper() for station in input_stations if station.upper() in all_stations]
     
     return stations
